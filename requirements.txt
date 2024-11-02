@@ -1,0 +1,8 @@
+pandas==2.2.3
+sqlalchemy==2.0.35
+requests==2.32.3
+streamlit==1.39.0
+pymysql==1.1.1
+mysql-connector-python==9.0.0
+fastapi==0.115.2
+pydantic==2.9.2

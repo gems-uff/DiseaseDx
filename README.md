@@ -18,8 +18,12 @@ $ pipenv install
 
 You can run the `joined_inheritance.py` locally in 3 ways:
 - Creating a MySQL database called `diseasedx_test` and saving the user and pass on `MYSQL_USER` and `MYSQL_PASS`
-- Uncomment the `connection_string` to create a `local SQLite db` (and comment the other `connection_string`)
-- Uncomment the `connection_string` to create a `SQLite db in memory` (and comment the other `connection_string`)
+- Creating a `SQLite db in memory`
+- Creating a `local SQLite db`
+
+> For the `local SQLite db` it's interesting to install the extension `SQLite` as it let's you open the tables and queries on `VS Code`
+>
+> After running the code and creating the `mylocaldb.db` you can press `CTRL + SHIFT + P`, type `SQLite: Open Database`, hit enter and then select the `mylocaldb.db`
 
 ---
 

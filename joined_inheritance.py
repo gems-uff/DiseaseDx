@@ -35,7 +35,7 @@ class Base(DeclarativeBase):
 class Expressao(Base):
     __tablename__ = "expressao"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    type: Mapped[str] = mapped_column(String(255)) # Coluna discriminadora para o tipo de expressão 
+    type: Mapped[str] = mapped_column(String(255)) # Coluna discriminadora para o tipo de expressão
 
     __mapper_args__ = {
         "polymorphic_identity": "expressao",
@@ -46,33 +46,41 @@ class Expressao(Base):
 class And(Expressao):
     __tablename__ = "and"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-    right_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
+    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+
+    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
+    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
 
     __mapper_args__ = {
         "polymorphic_identity": "and",
-        "inherit_condition": id == Expressao.id,  # Especifica como herdar a tabela base
+        "inherit_condition": id == Expressao.id,
     }
 
+    # O construtor padrão espera 1 argumento e gera esse erro: TypeError: __init__() takes 1 positional argument but 3 were given
     def __init__(self, left: Expressao, right: Expressao):
-        self.left_expr = left.id
-        self.right_expr = right.id
+        self.left_expr = left
+        self.right_expr = right
 
 
 class Or(Expressao):
     __tablename__ = "or"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-    right_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
+    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+
+    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
+    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
 
     __mapper_args__ = {
         "polymorphic_identity": "or",
-        "inherit_condition": id == Expressao.id,  # Especifica como herdar a tabela base
+        "inherit_condition": id == Expressao.id,
     }
 
+    # O construtor padrão espera 1 argumento e gera esse erro: TypeError: __init__() takes 1 positional argument but 3 were given
     def __init__(self, left: Expressao, right: Expressao):
-        self.left_expr = left.id
-        self.right_expr = right.id
+        self.left_expr = left
+        self.right_expr = right
 
 
 
@@ -113,27 +121,27 @@ Base.metadata.create_all(engine)  # Cria as tabelas com o esquema atualizado
 with Session(engine) as session:
 
     # Criando os objetos previamente para nao duplicar a entrada no banco de dados
-    dor_de_cabeca = Sintoma(name="Dor de cabeça")
-    febre = Sintoma(name="Febre")
-    ferro_alto = Resultado(name="Ferro alto")
+    dor_no_peito = Sintoma(name="Dor no peito")
+    dor_no_abdome = Sintoma(name="Dor no abdome")
+    artrite_no_ombro = Sintoma(name="Artrite no ombro")
     variante_mefv_patogenica = Resultado(name="Variante MEFV patogênica")
     vus_de_mefv = Resultado(name="VUS de MEFV")
-    dor_no_peito = Sintoma(name="Dor no peito")
 
-    session.add_all([dor_de_cabeca, febre, ferro_alto, variante_mefv_patogenica, vus_de_mefv, dor_no_peito])
+    # Adicionando ao banco para garantir que tenham IDs
+    session.add_all([dor_no_peito, dor_no_abdome, artrite_no_ombro, variante_mefv_patogenica, vus_de_mefv])
     session.commit()
 
     # Criando a expressão para a doença Familial Mediterranean Fever
     fmf_expr = Or(
         And(
-            variante_mefv_patogenica,
-            febre
+            dor_no_peito,
+            variante_mefv_patogenica
         ),
         And(
             vus_de_mefv,
             And(
-                dor_de_cabeca,
-                dor_no_peito
+                dor_no_abdome,
+                artrite_no_ombro
             )
         )
     )

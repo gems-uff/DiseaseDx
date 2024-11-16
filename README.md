@@ -24,6 +24,8 @@ You can run the `joined_inheritance.py` locally in 3 ways:
 > For the `local SQLite db` it's interesting to install the extension `SQLite` as it let's you open the tables and queries on `VS Code`
 >
 > After running the code and creating the `mylocaldb.db` you can press `CTRL + SHIFT + P`, type `SQLite: Open Database`, hit enter and then select the `mylocaldb.db`
+>
+> It will open a blade on the bottom left corner where you can interact with the db
 
 ---
 

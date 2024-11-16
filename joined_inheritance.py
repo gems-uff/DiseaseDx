@@ -3,6 +3,17 @@ from sqlalchemy import ForeignKey, String, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
 import os
 from urllib.parse import quote_plus
+from sqlalchemy_utils import database_exists, create_database, drop_database
+
+
+# Printa o objeto recursivamente para visualização
+def print_object(o, tabdepth=0):
+    for key, value in o.__dict__.items():
+        print('\t' * tabdepth + key)
+        if hasattr(value, '__dict__'):
+            print_object(value, tabdepth + 1)
+        else:
+            print('\t' * (tabdepth + 1), value)
 
 
 # Configurações de conexão com o MySQL ou SQLite
@@ -12,7 +23,8 @@ server = "localhost"
 port = "3306"
 dbname = "diseasedx_test"
 connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
-# connection_string = "sqlite://"  # Se quiser usar em memoria
+# connection_string = "sqlite://"  # Se quiser criar uma db em memória
+# connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
 
 
 # Classe base declarativa
@@ -23,51 +35,45 @@ class Base(DeclarativeBase):
 class Expressao(Base):
     __tablename__ = "expressao"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    expr: Mapped[str] = mapped_column(String(255))
+    type: Mapped[str] = mapped_column(String(255)) # Coluna discriminadora para o tipo de expressão 
 
     __mapper_args__ = {
-        "polymorphic_on": "expr"
+        "polymorphic_identity": "expressao",
+        "polymorphic_on": "type",
     }
 
 
 class And(Expressao):
     __tablename__ = "and"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_id: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-    right_id: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-    
-    left_expr = relationship("Expressao", foreign_keys=[left_id])
-    right_expr = relationship("Expressao", foreign_keys=[right_id])
+    left_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
+    right_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
 
     __mapper_args__ = {
-        "inherit_condition": id == Expressao.id, # For joined table inheritance, 
-                                                 # a SQL expression which will define how the two tables are joined; 
-                                                 # defaults to a natural join between the two tables.
+        "polymorphic_identity": "and",
+        "inherit_condition": id == Expressao.id,  # Especifica como herdar a tabela base
     }
 
-    def __init__(self, left_expr, right_expr):
-        super().__init__(expr=f"({left_expr.expr} AND {right_expr.expr})")
-        self.left_expr = left_expr
-        self.right_expr = right_expr
+    def __init__(self, left: Expressao, right: Expressao):
+        self.left_expr = left.id
+        self.right_expr = right.id
 
 
 class Or(Expressao):
     __tablename__ = "or"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_id: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-    right_id: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
-
-    left_expr = relationship("Expressao", foreign_keys=[left_id])
-    right_expr = relationship("Expressao", foreign_keys=[right_id])
+    left_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
+    right_expr: Mapped[Optional[int]] = mapped_column(ForeignKey("expressao.id"))
 
     __mapper_args__ = {
-        "inherit_condition": id == Expressao.id,
+        "polymorphic_identity": "or",
+        "inherit_condition": id == Expressao.id,  # Especifica como herdar a tabela base
     }
 
-    def __init__(self, left_expr, right_expr):
-        super().__init__(expr=f"({left_expr.expr} OR {right_expr.expr})")
-        self.left_expr = left_expr
-        self.right_expr = right_expr
+    def __init__(self, left: Expressao, right: Expressao):
+        self.left_expr = left.id
+        self.right_expr = right.id
+
 
 
 class Sintoma(Expressao):
@@ -76,12 +82,8 @@ class Sintoma(Expressao):
     name: Mapped[str] = mapped_column(String(255))
 
     __mapper_args__ = {
-        "inherit_condition": id == Expressao.id,
+        "polymorphic_identity": "sintoma",
     }
-
-    def __init__(self, name):
-        super().__init__(expr=name)
-        self.name = name
 
 
 class Resultado(Expressao):
@@ -90,18 +92,22 @@ class Resultado(Expressao):
     name: Mapped[str] = mapped_column(String(255))
 
     __mapper_args__ = {
-        "inherit_condition": id == Expressao.id,
+        "polymorphic_identity": "resultado",
     }
-
-    def __init__(self, name):
-        super().__init__(expr=name)
-        self.name = name
 
 
 # Criando engine para conectar ao banco de dados
-engine = create_engine(connection_string, echo=True)
+engine = create_engine(connection_string, echo=False) # echo=True para ver as queries executadas
+
+
+# Verifica se o banco de dados existe e o deleta
+if database_exists(engine.url):
+    drop_database(engine.url)
+
+create_database(engine.url)
 
 Base.metadata.create_all(engine)  # Cria as tabelas com o esquema atualizado
+
 
 # Iniciando uma sessão para inserir dados no banco de dados
 with Session(engine) as session:
@@ -114,43 +120,36 @@ with Session(engine) as session:
     vus_de_mefv = Resultado(name="VUS de MEFV")
     dor_no_peito = Sintoma(name="Dor no peito")
 
-    # Exemplo de inserção de dados syntax tree
-    diseasedx_expr = And(
-        left_expr=dor_de_cabeca,
-        right_expr=Or(
-            left_expr=febre,
-            right_expr=ferro_alto
-        )
-    )
+    session.add_all([dor_de_cabeca, febre, ferro_alto, variante_mefv_patogenica, vus_de_mefv, dor_no_peito])
+    session.commit()
 
+    # Criando a expressão para a doença Familial Mediterranean Fever
     fmf_expr = Or(
-        left_expr=And(
-            left_expr=variante_mefv_patogenica,
-            right_expr=febre
+        And(
+            variante_mefv_patogenica,
+            febre
         ),
-        right_expr=And(
-            left_expr=vus_de_mefv,
-            right_expr=And(
-                left_expr=dor_de_cabeca,
-                right_expr=dor_no_peito
+        And(
+            vus_de_mefv,
+            And(
+                dor_de_cabeca,
+                dor_no_peito
             )
         )
     )
 
-    # Exemplo de inserção de dados linha a linha
-    # or_expr = Or(left_expr=febre, right_expr=ferro_alto)
-    # diseasedx_expr = And(left_expr=dor_de_cabeca, right_expr=or_expr)
+    # print("\n\nObject created on memory before inserting in the database:")
+    # print_object(fmf_expr)
+    # print("\n\n")
 
     # Inserir as expressoes no banco de dados
-    session.add(diseasedx_expr)
     session.add(fmf_expr)
     session.commit()
 
     # Buscando a expressão no banco de dados usando o objeto criado
-    expr_query = select(Expressao).where(Expressao.expr == diseasedx_expr.expr)
-    result = session.execute(expr_query).scalars().first()
-    print(result.expr)
-
-    expr_query = select(Expressao).where(Expressao.expr == fmf_expr.expr)
-    result = session.execute(expr_query).scalars().first()
-    print(result.expr)
+    statement = select(Expressao).where(Expressao.id == fmf_expr.id)
+    result = session.execute(statement).scalars().first()
+    # print("\n\nObject returned from database:")
+    # print_object(result)
+    # print("\n\n\n")
+    print(result)

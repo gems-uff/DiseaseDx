@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy import ForeignKey, String, create_engine, select
+from sqlalchemy import ForeignKey, String, Float, create_engine, select
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship, Session
 import os
 from urllib.parse import quote_plus
@@ -12,9 +12,9 @@ password = quote_plus(os.getenv('MYSQL_PASS'))
 server = "localhost"
 port = "3306"
 dbname = "diseasedx_test"
-connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
+# connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
 # connection_string = "sqlite://"  # Se quiser criar uma db em memória
-# connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
+connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
 
 
 # Classe base declarativa
@@ -107,6 +107,31 @@ class Resultado(Expressao):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"
+    
+# Adicionando classes para Doenca e Diagnostico
+
+class Doenca(Base):
+    __tablename__ = "doenca"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+    
+class Diagnostico(Base):
+    __tablename__ = "diagnostico"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    sensibilidade: Mapped[Optional[float]] = mapped_column(Float)
+    especificidade: Mapped[Optional[float]] = mapped_column(Float)
+    acuracia: Mapped[Optional[float]] = mapped_column(Float)
+    doenca_id: Mapped[int] = mapped_column(ForeignKey("doenca.id"))
+    expressao_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+    
+    doenca: Mapped[Doenca] = relationship("Doenca")
+    expressao: Mapped[Expressao] = relationship("Expressao")
+    
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.doenca!r}, {self.expressao!r})"
 
 
 # Criando engine para conectar ao banco de dados
@@ -151,7 +176,7 @@ with Session(engine) as session:
         )
     )
 
-    print("\n--- Object created on memory before inserting in the database:")
+    print("\n--- Expression object created on memory before inserting in the database:")
     print(fmf_expr)
     print(type(fmf_expr))
     print()
@@ -164,7 +189,7 @@ with Session(engine) as session:
     statement = select(Expressao).where(Expressao.id == fmf_expr.id)
     expr = session.scalars(statement).first()
 
-    print("\n--- Object returned from database:")
+    print("\n--- Expression object returned from database:")
     print(expr)
     print(type(expr))
     print("\n")
@@ -182,3 +207,27 @@ with Session(engine) as session:
 
     print(expr.right_expr.right_expr.left_expr)
     print(expr.right_expr.right_expr.right_expr)
+
+    # Criando uma doença e um diagnóstico para a expressão
+
+    fmf = Doenca(name="Familial Mediterranean Fever")
+    session.add(fmf)
+    session.commit()
+
+    diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
+    session.add(diag)
+    session.commit()
+
+    # Buscando o diagnóstico no banco de dados
+    statement = select(Diagnostico).where(Diagnostico.id == diag.id)
+    diag = session.scalars(statement).first()
+
+    print("\n--- Diagnostic object returned from database:")
+    print(diag)
+    print(type(diag))
+    print("\n")
+    print(f"- Nome da doença: {diag.doenca}")
+    print(f"- Expressão: {diag.expressao}")
+    print(f"- Sensibilidade: {diag.sensibilidade}")
+    print(f"- Especificidade: {diag.especificidade}")
+    print(f"- Acurácia: {diag.acuracia}")

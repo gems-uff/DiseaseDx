@@ -6,16 +6,6 @@ from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
 
 
-# Printa o objeto recursivamente para visualização
-def print_object(o, tabdepth=0):
-    for key, value in o.__dict__.items():
-        print('\t' * tabdepth + key)
-        if hasattr(value, '__dict__'):
-            print_object(value, tabdepth + 1)
-        else:
-            print('\t' * (tabdepth + 1), value)
-
-
 # Configurações de conexão com o MySQL ou SQLite
 username = os.getenv('MYSQL_USER')
 password = quote_plus(os.getenv('MYSQL_PASS'))
@@ -42,6 +32,9 @@ class Expressao(Base):
         "polymorphic_on": "type",
     }
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.id!r})"
+
 
 class And(Expressao):
     __tablename__ = "and"
@@ -61,6 +54,9 @@ class And(Expressao):
     def __init__(self, left: Expressao, right: Expressao):
         self.left_expr = left
         self.right_expr = right
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
 
 
 class Or(Expressao):
@@ -82,6 +78,9 @@ class Or(Expressao):
         self.left_expr = left
         self.right_expr = right
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
+
 
 
 class Sintoma(Expressao):
@@ -93,6 +92,9 @@ class Sintoma(Expressao):
         "polymorphic_identity": "sintoma",
     }
 
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+
 
 class Resultado(Expressao):
     __tablename__ = "resultado"
@@ -102,6 +104,9 @@ class Resultado(Expressao):
     __mapper_args__ = {
         "polymorphic_identity": "resultado",
     }
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
 
 
 # Criando engine para conectar ao banco de dados
@@ -146,9 +151,10 @@ with Session(engine) as session:
         )
     )
 
-    # print("\n\nObject created on memory before inserting in the database:")
-    # print_object(fmf_expr)
-    # print("\n\n")
+    print("\n--- Object created on memory before inserting in the database:")
+    print(fmf_expr)
+    print(type(fmf_expr))
+    print()
 
     # Inserir as expressoes no banco de dados
     session.add(fmf_expr)
@@ -156,8 +162,23 @@ with Session(engine) as session:
 
     # Buscando a expressão no banco de dados usando o objeto criado
     statement = select(Expressao).where(Expressao.id == fmf_expr.id)
-    result = session.execute(statement).scalars().first()
-    # print("\n\nObject returned from database:")
-    # print_object(result)
-    # print("\n\n\n")
-    print(result)
+    expr = session.scalars(statement).first()
+
+    print("\n--- Object returned from database:")
+    print(expr)
+    print(type(expr))
+    print("\n")
+
+    print(expr.left_expr)
+    print(expr.right_expr)
+    print(type(expr.left_expr))
+    print(type(expr.right_expr))
+
+    print(expr.left_expr.left_expr)
+    print(expr.left_expr.right_expr)
+
+    print(expr.right_expr.left_expr)
+    print(expr.right_expr.right_expr)
+
+    print(expr.right_expr.right_expr.left_expr)
+    print(expr.right_expr.right_expr.right_expr)

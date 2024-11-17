@@ -5,15 +5,6 @@ import os
 from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
 
-# Printa o objeto recursivamente para visualização
-def print_object(o, tabdepth=0):
-    for key, value in o.__dict__.items():
-        print('\t' * tabdepth + key)
-        if hasattr(value, '__dict__'):
-            print_object(value, tabdepth + 1)
-        else:
-            print('\t' * (tabdepth + 1), value)
-
 
 # Configurações de conexão com o MySQL ou SQLite
 username = os.getenv('MYSQL_USER')
@@ -21,9 +12,9 @@ password = quote_plus(os.getenv('MYSQL_PASS'))
 server = "localhost"
 port = "3306"
 dbname = "diseasedx_test"
-connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
+# connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
 # connection_string = "sqlite://"  # Se quiser criar uma db em memória
-# connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
+connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
 
 
 class Base(DeclarativeBase):
@@ -86,10 +77,11 @@ with Session(engine) as session:
     # Create a manager
     manager = Manager(name="Jane Manager", manager_name="Jane Manager")
 
-
-    # print("\n\nObject created on memory before inserting in the database:")
-    # print_object(engineer)
-    # print("\n\n")
+    print("\nObject created on memory before inserting in the database:")
+    print(engineer)
+    print(type(engineer))
+    print(manager)
+    print(type(manager))
 
     # Inserir as expressoes no banco de dados
     session.add(engineer)
@@ -98,8 +90,14 @@ with Session(engine) as session:
 
     # Buscando a expressão no banco de dados usando o objeto criado
     statement = select(Employee).where(Employee.id == engineer.id)
-    result = session.execute(statement).scalars().first()
-    # print("\n\nObject returned from database:")
-    # print_object(result)
-    # print("\n\n\n")
-    print(result)
+    engineer_result = session.execute(statement).scalars().first()
+    statement = select(Employee).where(Employee.id == manager.id)
+    manager_result = session.execute(statement).scalars().first()
+
+    print("\nObject returned from database:")
+    print(engineer_result)
+    print(type(engineer_result))
+    print(f"Engineer name = {engineer_result.engineer_name}")
+    print(manager_result)
+    print(type(manager_result))
+    print(f"Manager name = {manager_result.manager_name}")

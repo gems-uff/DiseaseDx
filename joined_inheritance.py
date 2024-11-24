@@ -12,9 +12,9 @@ password = quote_plus(os.getenv('MYSQL_PASS'))
 server = "localhost"
 port = "3306"
 dbname = "diseasedx_test"
-# connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
+connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
 # connection_string = "sqlite://"  # Se quiser criar uma db em memória
-connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
+# connection_string = "sqlite:///mylocaldb.db"  # Se quiser criar uma db local
 
 
 # Classe base declarativa
@@ -114,6 +114,7 @@ class Doenca(Base):
     __tablename__ = "doenca"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
+    diagnosticos: Mapped[list["Diagnostico"]] = relationship("Diagnostico", back_populates="doenca")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"
@@ -127,7 +128,7 @@ class Diagnostico(Base):
     doenca_id: Mapped[int] = mapped_column(ForeignKey("doenca.id"))
     expressao_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
     
-    doenca: Mapped[Doenca] = relationship("Doenca")
+    doenca: Mapped[Doenca] = relationship("Doenca", back_populates="diagnosticos")
     expressao: Mapped[Expressao] = relationship("Expressao")
     
     def __repr__(self):
@@ -157,10 +158,6 @@ with Session(engine) as session:
     variante_mefv_patogenica = Resultado(name="Variante MEFV patogênica")
     vus_de_mefv = Resultado(name="VUS de MEFV")
 
-    # Adicionando ao banco para garantir que tenham IDs
-    session.add_all([dor_no_peito, dor_no_abdome, artrite_no_ombro, variante_mefv_patogenica, vus_de_mefv])
-    session.commit()
-
     # Criando a expressão para a doença Familial Mediterranean Fever
     fmf_expr = Or(
         And(
@@ -176,58 +173,45 @@ with Session(engine) as session:
         )
     )
 
-    print("\n--- Expression object created on memory before inserting in the database:")
-    print(fmf_expr)
-    print(type(fmf_expr))
+    # Criando uma doença e um diagnóstico para a expressão
+    fmf = Doenca(name="Familial Mediterranean Fever")
+    diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
+
+    # Verificando o objeto criado em memoria
+    print("\n--- Objeto Doenca FMF criado em memoria antes de ser adicionado ao banco de dados:")
+    print(fmf)
+    print(type(fmf))
     print()
 
-    # Inserir as expressoes no banco de dados
-    session.add(fmf_expr)
-    session.commit()
-
-    # Buscando a expressão no banco de dados usando o objeto criado
-    statement = select(Expressao).where(Expressao.id == fmf_expr.id)
-    expr = session.scalars(statement).first()
-
-    print("\n--- Expression object returned from database:")
-    print(expr)
-    print(type(expr))
-    print("\n")
-
-    print(expr.left_expr)
-    print(expr.right_expr)
-    print(type(expr.left_expr))
-    print(type(expr.right_expr))
-
-    print(expr.left_expr.left_expr)
-    print(expr.left_expr.right_expr)
-
-    print(expr.right_expr.left_expr)
-    print(expr.right_expr.right_expr)
-
-    print(expr.right_expr.right_expr.left_expr)
-    print(expr.right_expr.right_expr.right_expr)
-
-    # Criando uma doença e um diagnóstico para a expressão
-
-    fmf = Doenca(name="Familial Mediterranean Fever")
+    # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
     session.add(fmf)
     session.commit()
 
-    diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
-    session.add(diag)
-    session.commit()
+    # Buscando a expressão no banco de dados usando o objeto criado
+    statement = select(Doenca).where(Doenca.name == "Familial Mediterranean Fever")
+    doenca = session.scalars(statement).first()
 
-    # Buscando o diagnóstico no banco de dados
-    statement = select(Diagnostico).where(Diagnostico.id == diag.id)
-    diag = session.scalars(statement).first()
+    # Verificando o objeto Doenca recuperado do banco de dados
+    print("\n--- Objeto Doenca FMF recuperado do banco de dados:")
+    print(doenca)
+    print(type(doenca))
+    print()
 
-    print("\n--- Diagnostic object returned from database:")
-    print(diag)
-    print(type(diag))
-    print("\n")
-    print(f"- Nome da doença: {diag.doenca}")
-    print(f"- Expressão: {diag.expressao}")
-    print(f"- Sensibilidade: {diag.sensibilidade}")
-    print(f"- Especificidade: {diag.especificidade}")
-    print(f"- Acurácia: {diag.acuracia}")
+    # Navegando para o Diagnostico a partir da Doenca
+    diagnostico = doenca.diagnosticos[0]
+    print("\n--- Diagnostico a partir da Doenca FMF:")
+    print(diagnostico)
+    print()
+    print(f"Nome da doença: {diagnostico.doenca}")
+    print(f"Expressão: {diagnostico.expressao}")
+    print(f"Sensibilidade: {diagnostico.sensibilidade}")
+    print(f"Especificidade: {diagnostico.especificidade}")
+    print(f"Acurácia: {diagnostico.acuracia}")
+    print()
+
+    # Navegando para a Expressao a partir do Diagnostico
+    expr = diagnostico.expressao
+    print("\n--- Expressao a partir do Diagnostico:")
+    print(expr)
+    print(type(expr))
+    print()

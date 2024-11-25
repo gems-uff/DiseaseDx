@@ -111,14 +111,86 @@ class AoMenos(Expressao):
         return f"{self.__class__.__name__}({self.qtd!r})({self.expressoes!r})"
 
 
+class RegiaoDoCorpo(Base):
+    __tablename__ = "regiao_do_corpo"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+    type: Mapped[str] = mapped_column(String(255)) # Coluna discriminadora para o tipo de região do corpo
+
+    regiao_composta: Mapped["RegiaoComposta"] = relationship("RegiaoComposta", back_populates="regioes")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "regiao_do_corpo",
+        "polymorphic_on": "type",
+    }
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+
+
+class Orgao(RegiaoDoCorpo):
+    __tablename__ = "orgao"
+    id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"), primary_key=True)
+
+    __mapper_args__ = {
+        "polymorphic_identity": "orgao",
+    }
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+
+
+class RegiaoComposta(RegiaoDoCorpo):
+    __tablename__ = "regiao_composta"
+    id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"), primary_key=True)
+
+    regioes: Mapped[list[RegiaoDoCorpo]] = relationship("RegiaoDoCorpo", back_populates="regiao_composta")
+
+    __mapper_args__ = {
+        "polymorphic_identity": "regiao_composta",
+    }
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+
+
+class Manifestacao(Base):
+    __tablename__ = "manifestacao"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+
+
 class Sintoma(Expressao):
     __tablename__ = "sintoma"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    name: Mapped[str] = mapped_column(String(255))
+    manifestacao_id: Mapped[int] = mapped_column(ForeignKey("manifestacao.id"))
+    regiao_do_corpo_id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"))
+
+    manifestacao: Mapped[Manifestacao] = relationship("Manifestacao")
+    regiao_do_corpo: Mapped[RegiaoDoCorpo] = relationship("RegiaoDoCorpo")
 
     __mapper_args__ = {
         "polymorphic_identity": "sintoma",
     }
+
+    def __init__(self, manifestacao: Manifestacao, regiao_do_corpo: RegiaoDoCorpo):
+        self.manifestacao = manifestacao
+        self.regiao_do_corpo = regiao_do_corpo
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.manifestacao!r})({self.regiao_do_corpo!r})"
+
+
+class Exame(Base):
+    __tablename__ = "exame"
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+    preco: Mapped[str] = mapped_column(String(255))
+
+    resultados: Mapped[list["Resultado"]] = relationship("Resultado", back_populates="exame")
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"
@@ -128,6 +200,9 @@ class Resultado(Expressao):
     __tablename__ = "resultado"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
     name: Mapped[str] = mapped_column(String(255))
+    exame_id: Mapped[int] = mapped_column(ForeignKey("exame.id"))
+    
+    exame: Mapped[Exame] = relationship("Exame", back_populates="resultados")
 
     __mapper_args__ = {
         "polymorphic_identity": "resultado",
@@ -135,8 +210,7 @@ class Resultado(Expressao):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"
-    
-# Adicionando classes para Doenca e Diagnostico
+
 
 class Doenca(Base):
     __tablename__ = "doenca"
@@ -179,12 +253,22 @@ Base.metadata.create_all(engine)  # Cria as tabelas com o esquema atualizado
 # Iniciando uma sessão para inserir dados no banco de dados
 with Session(engine) as session:
 
-    # Criando os objetos previamente para nao duplicar a entrada no banco de dados
-    dor_no_peito = Sintoma(name="Dor no peito")
-    dor_no_abdome = Sintoma(name="Dor no abdome")
-    artrite_no_ombro = Sintoma(name="Artrite no ombro")
-    variante_mefv_patogenica = Resultado(name="Variante MEFV patogênica")
-    vus_de_mefv = Resultado(name="VUS de MEFV")
+    # Criando os objetos de Manifestacao e RegiaoDoCorpo
+    dor = Manifestacao(name="Dor")
+    artrite = Manifestacao(name="Artrite")
+    peito = RegiaoComposta(name="Peito")
+    abdome = RegiaoComposta(name="Abdome")
+    ombro = Orgao(name="Ombro")
+
+    # Criando os objetos de Sintoma
+    dor_no_peito = Sintoma(dor, peito)
+    dor_no_abdome = Sintoma(dor, abdome)
+    artrite_no_ombro = Sintoma(artrite, ombro)
+
+    # Criando os objetos de Exame e Resultado
+    exame_mefv = Exame(name="MEFV", preco="R$3500,00")
+    variante_mefv_patogenica = Resultado(name="Variante MEFV patogênica", exame=exame_mefv)
+    vus_de_mefv = Resultado(name="VUS de MEFV", exame=exame_mefv)
 
     # Criando a expressão para a doença Familial Mediterranean Fever
     fmf_expr = Or(

@@ -256,12 +256,12 @@ with Session(engine) as session:
     # Criando os objetos de Manifestacao e RegiaoDoCorpo
     dor = Manifestacao(name="Dor")
     artrite = Manifestacao(name="Artrite")
-    peito = RegiaoComposta(name="Peito")
-    abdome = RegiaoComposta(name="Abdome")
     ombro = Orgao(name="Ombro")
+    abdome = RegiaoComposta(name="Abdome")
+    tronco = RegiaoComposta(name="Tronco") # o regioes=[abdome, tronco] nao esta funcionando ainda, nem so com regioes=abdome, reclama de duplicate entry for primary key
 
     # Criando os objetos de Sintoma
-    dor_no_peito = Sintoma(dor, peito)
+    dor_no_tronco = Sintoma(dor, tronco)
     dor_no_abdome = Sintoma(dor, abdome)
     artrite_no_ombro = Sintoma(artrite, ombro)
 
@@ -276,14 +276,14 @@ with Session(engine) as session:
             variante_mefv_patogenica,
             AoMenos(
                 1,
-                [dor_no_peito, dor_no_abdome, artrite_no_ombro]
+                [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
             )
         ),
         And(
             vus_de_mefv,
             AoMenos(
                 2,
-                [dor_no_peito, dor_no_abdome, artrite_no_ombro]
+                [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
             )
         )
     )
@@ -337,7 +337,21 @@ with Session(engine) as session:
     print(ao_menos)
     print(type(ao_menos))
     print()
-
     print(ao_menos.qtd)
     for expressao in ao_menos.expressoes:
         print(expressao)
+
+    # Navegando para a RegiaoDoCorpo a partir do Sintoma (Ta zoado, tem que rever)
+    regiao_do_corpo = expr.left_expr.right_expr.expressoes[0].regiao_do_corpo # dor_no_tronco
+    print("\n### RegiaoDoCorpo a partir do Sintoma:")
+    print(regiao_do_corpo)
+    print(type(regiao_do_corpo))
+    print()
+    print(regiao_do_corpo.name)
+    print(regiao_do_corpo.regioes)
+
+    estomago = Orgao(name="Estômago")
+    regiao_do_corpo.regioes = abdome
+    print(regiao_do_corpo.regioes)
+    regiao_do_corpo.regioes.regioes = estomago
+    print(regiao_do_corpo.regioes.regioes)

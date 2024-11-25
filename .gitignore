@@ -167,3 +167,5 @@ mylocaldb.db
 
 local_test.py
 local_test*.py
+
+.vscode/

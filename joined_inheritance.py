@@ -111,13 +111,21 @@ class AoMenos(Expressao):
         return f"{self.__class__.__name__}({self.qtd!r})({self.expressoes!r})"
 
 
+regioes_da_parte = Table(
+    "regioes",
+    Base.metadata,
+    Column("regiao_composta_id", Integer, ForeignKey("regiao_composta.id"), primary_key=True),
+    Column("regiao_do_corpo_id", Integer, ForeignKey("regiao_do_corpo.id"), primary_key=True)
+)
+
+
 class RegiaoDoCorpo(Base):
     __tablename__ = "regiao_do_corpo"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(255))
     type: Mapped[str] = mapped_column(String(255)) # Coluna discriminadora para o tipo de região do corpo
 
-    regiao_composta: Mapped["RegiaoComposta"] = relationship("RegiaoComposta", back_populates="regioes")
+    regiao_composta: Mapped[list["RegiaoComposta"]] = relationship("RegiaoComposta", secondary=regioes_da_parte, back_populates="regioes")
 
     __mapper_args__ = {
         "polymorphic_identity": "regiao_do_corpo",
@@ -128,26 +136,32 @@ class RegiaoDoCorpo(Base):
         return f"{self.__class__.__name__}({self.name!r})"
 
 
-class Orgao(RegiaoDoCorpo):
-    __tablename__ = "orgao"
-    id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"), primary_key=True)
-
-    __mapper_args__ = {
-        "polymorphic_identity": "orgao",
-    }
-
-    def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
-
-
 class RegiaoComposta(RegiaoDoCorpo):
     __tablename__ = "regiao_composta"
     id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
 
-    regioes: Mapped[list[RegiaoDoCorpo]] = relationship("RegiaoDoCorpo", back_populates="regiao_composta")
+    regioes: Mapped[list[RegiaoDoCorpo]] = relationship("RegiaoDoCorpo", secondary=regioes_da_parte, back_populates="regiao_composta")
 
     __mapper_args__ = {
         "polymorphic_identity": "regiao_composta",
+    }
+
+    def __init__(self, name: str, regioes: list[RegiaoDoCorpo] = []):
+        self.name = name
+        self.regioes = regioes
+
+    def __repr__(self):
+        return f"{self.__class__.__name__}({self.name!r})"
+    
+
+class Orgao(RegiaoDoCorpo):
+    __tablename__ = "orgao"
+    id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"), primary_key=True)
+    name: Mapped[str] = mapped_column(String(255))
+
+    __mapper_args__ = {
+        "polymorphic_identity": "orgao",
     }
 
     def __repr__(self):
@@ -221,6 +235,7 @@ class Doenca(Base):
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"
     
+
 class Diagnostico(Base):
     __tablename__ = "diagnostico"
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -257,8 +272,11 @@ with Session(engine) as session:
     dor = Manifestacao(name="Dor")
     artrite = Manifestacao(name="Artrite")
     ombro = Orgao(name="Ombro")
-    abdome = RegiaoComposta(name="Abdome")
-    tronco = RegiaoComposta(name="Tronco") # o regioes=[abdome, tronco] nao esta funcionando ainda, nem so com regioes=abdome, reclama de duplicate entry for primary key
+    pulmao = Orgao(name="Pulmão")
+    estomago = Orgao(name="Estômago")
+    abdome = RegiaoComposta(name="Abdome", regioes=[estomago])
+    torax = RegiaoComposta(name="Tórax", regioes=[pulmao])
+    tronco = RegiaoComposta(name="Tronco", regioes=[abdome, torax])
 
     # Criando os objetos de Sintoma
     dor_no_tronco = Sintoma(dor, tronco)
@@ -338,20 +356,26 @@ with Session(engine) as session:
     print(type(ao_menos))
     print()
     print(ao_menos.qtd)
+    print(len(ao_menos.expressoes))
     for expressao in ao_menos.expressoes:
         print(expressao)
 
-    # Navegando para a RegiaoDoCorpo a partir do Sintoma (Ta zoado, tem que rever)
-    regiao_do_corpo = expr.left_expr.right_expr.expressoes[0].regiao_do_corpo # dor_no_tronco
+    # Navegando para a RegiaoDoCorpo a partir do Sintoma
+    regiao_do_corpo = expr.left_expr.right_expr.expressoes[0].regiao_do_corpo # Pegando o 1o sintoma na lista do AoMenos (dor_no_tronco) e navegando para a RegiaoDoCorpo
     print("\n### RegiaoDoCorpo a partir do Sintoma:")
     print(regiao_do_corpo)
     print(type(regiao_do_corpo))
     print()
-    print(regiao_do_corpo.name)
-    print(regiao_do_corpo.regioes)
 
-    estomago = Orgao(name="Estômago")
-    regiao_do_corpo.regioes = abdome
+    # Navegando para outras regioes do corpo a partir da RegiaoDoCorpo
+    print("\n### Regioes do corpo a partir da RegiaoDoCorpo (Tronco):")
     print(regiao_do_corpo.regioes)
-    regiao_do_corpo.regioes.regioes = estomago
-    print(regiao_do_corpo.regioes.regioes)
+    print(regiao_do_corpo.regioes[0])
+    print(regiao_do_corpo.regioes[0].name)
+    print()
+
+    # Navegando para outra RegiaoDoCorpo a partir da RegiaoDoCorpo, no caso Orgao
+    print("\n### Orgao a partir da RegiaoDoCorpo (Torax):")
+    print(regiao_do_corpo.regioes[1])
+    print(regiao_do_corpo.regioes[1].regioes)
+    print()

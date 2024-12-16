@@ -13,6 +13,7 @@ mysql-connector-python = "*"
 fastapi = "*"
 pydantic = "*"
 sqlalchemy-utils = "*"
+pytest = "*"
 
 [dev-packages]
 

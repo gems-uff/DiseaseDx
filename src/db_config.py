@@ -15,7 +15,7 @@ class DatabaseConfig:
         self.server = "localhost"
         self.port = "3306"
         self.dbname = "diseasedx_test"
-        self.connection_string = f"mysql+mysqlconnector://{self.username}:{self.password}@{self.server}:{self.port}/{self.dbname}" # "sqlite://" - Cria em memória / "sqlite:///mylocaldb.db" - Cria uma db local
+        self.connection_string = "sqlite://" #f"mysql+mysqlconnector://{self.username}:{self.password}@{self.server}:{self.port}/{self.dbname}" # "sqlite://" - Cria em memória / "sqlite:///mylocaldb.db" - Cria uma db local
         self.engine = create_engine(self.connection_string, echo=False)
 
 
@@ -93,6 +93,17 @@ class DatabaseConfig:
                 )
             )
 
+            diabetes_expr = And(
+                Resultado(name="Glicose > 126 mg/dL", exame=Exame(name="Glicemia de jejum", preco="R$50,00")),
+                AoMenos(
+                    2,
+                    [
+                        Sintoma(Manifestacao(name="Sede")),
+                        Sintoma(Manifestacao(name="Vontade de urinar varias vezes"))
+                    ]
+                )
+            )
+
             # Criando uma doença e um diagnóstico para a expressão
             fmf = Doenca(name="Familial Mediterranean Fever")
             diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
@@ -100,8 +111,11 @@ class DatabaseConfig:
             fmf2 = Doenca(name="Familial Maisumteste Febre")
             diag = Diagnostico(sensibilidade=0.9, especificidade=0.84, acuracia=0.76, doenca=fmf2, expressao=fmf2_expr)
 
+            diabetes = Doenca(name="Diabetes")
+            diag = Diagnostico(doenca=diabetes, expressao=diabetes_expr)
+
             # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
             session.add(fmf)
             session.add(fmf2)
+            session.add(diabetes)
             session.commit()
-        session.close()

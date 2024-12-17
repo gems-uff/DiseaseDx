@@ -9,23 +9,10 @@ import pandas as pd
 with st.sidebar:
         st.page_link('main.py', label='Listar Doencas de um Sintoma', icon='📝')
         st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-st.title("Listar Doencas de um Sintoma")
-
+st.title("Contador de Sintomas de uma Doenca")
 
 # Criando o banco de dados e as tabelas
 engine = DatabaseConfig().init_db()
-
-
-# # Função para buscar um diagnóstico pela doenca
-# def get_diagnostico_by_doenca(doenca):
-#     with Session(engine) as session:
-#         statement = select(Diagnostico).where(Diagnostico.doenca_id == doenca.id).options(
-#             joinedload(Diagnostico.doenca),
-#             joinedload(Diagnostico.expressao)
-#         )
-#         diagnostico = session.scalar(statement)
-#         return diagnostico
-
 
 # Função para buscar todos os sintomas do banco de dados
 def get_all_sintomas():
@@ -38,8 +25,7 @@ def get_all_sintomas():
         return sintomas
 
 
-# Função para buscar todas as doenças associadas a um sintoma
-def get_diagnosticos_by_sintoma(sintoma):
+def get_doencas_by_sintoma(sintoma):
     with Session(engine) as session:
         sintoma_id = sintoma.id
         sintoma = session.get(Sintoma, sintoma_id)
@@ -64,37 +50,30 @@ def get_diagnosticos_by_sintoma(sintoma):
         for diag in diagnosticos:
             if contains_expression(diag.expressao, sintoma):
                 diagnosticos_filtrados.append(diag)
+            
+        doencas = []
+        for diag in diagnosticos_filtrados:
+            doencas.append(diag.doenca)
 
-        return diagnosticos_filtrados
+        return doencas
 
 
-# Obter todos os sintomas do banco de dados
+# Exemplo de uso
 sintomas = get_all_sintomas()
 st.write(sintomas)
 
+# Create a dropdown option to select a specific symptom to search for diseases
+sintoma = st.selectbox("Selecione o sintoma", [sintoma for sintoma in sintomas])
 
-# Filtrar sintomas por termo de busca
-search_term = st.text_input("Digite o sintoma")
-filtered_sintomas = []
-for sintoma in sintomas:
-    if search_term.lower() in sintoma.manifestacao.name.lower():
-        filtered_sintomas.append(sintoma)
-    elif sintoma.regiao_do_corpo and search_term.lower() in sintoma.regiao_do_corpo.name.lower():
-        filtered_sintomas.append(sintoma)
-sintoma = st.selectbox("Selecione o sintoma", filtered_sintomas)
-
-
-# Listar as doenças associadas ao sintoma
-diagnosticos = get_diagnosticos_by_sintoma(sintoma)
-doencas = [diagnostico.doenca for diagnostico in diagnosticos]
+# Only run get_doencas_by_sintoma after selecting at least 1 symptom from the multiselect
+doencas = get_doencas_by_sintoma(sintoma)
 st.write(doencas)
 
-
-# Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
+# Create a dataframe to display the diseases for each symptom
 df = pd.DataFrame(columns=["Sintoma", "Doenças"])
 for sintoma in sintomas:
-    diagnosticos = get_diagnosticos_by_sintoma(sintoma)
-    doencas_names = [diagnostico.doenca.name for diagnostico in diagnosticos]
+    doencas = get_doencas_by_sintoma(sintoma)
+    doencas_names = [doenca.name for doenca in doencas]
     if(sintoma.regiao_do_corpo == None):
         df = pd.concat([df, pd.DataFrame([{
             "Sintoma": f"{sintoma.manifestacao.name}",
@@ -105,7 +84,5 @@ for sintoma in sintomas:
             "Sintoma": f"{sintoma.manifestacao.name} no(a) {sintoma.regiao_do_corpo.name}", 
             "Doenças": doencas_names
         }])], ignore_index=True)
-st.dataframe(df)
 
-# diag = get_diagnostico_by_doenca(doencas[0])
-# st.write(diag.expressao)
+st.dataframe(df)

@@ -166,16 +166,16 @@ class Sintoma(Expressao):
     __tablename__ = "sintoma"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
     manifestacao_id: Mapped[int] = mapped_column(ForeignKey("manifestacao.id"))
-    regiao_do_corpo_id: Mapped[int] = mapped_column(ForeignKey("regiao_do_corpo.id"))
+    regiao_do_corpo_id: Mapped[Optional[int]] = mapped_column(ForeignKey("regiao_do_corpo.id"), nullable=True) # Alterei para optional
 
     manifestacao: Mapped[Manifestacao] = relationship("Manifestacao")
-    regiao_do_corpo: Mapped[RegiaoDoCorpo] = relationship("RegiaoDoCorpo")
+    regiao_do_corpo: Mapped[Optional[RegiaoDoCorpo]] = relationship("RegiaoDoCorpo") # Alterei para optional
 
     __mapper_args__ = {
         "polymorphic_identity": "sintoma",
     }
 
-    def __init__(self, manifestacao: Manifestacao, regiao_do_corpo: RegiaoDoCorpo):
+    def __init__(self, manifestacao: Manifestacao, regiao_do_corpo: Optional[RegiaoDoCorpo] = None): # Alterei para optional
         self.manifestacao = manifestacao
         self.regiao_do_corpo = regiao_do_corpo
 

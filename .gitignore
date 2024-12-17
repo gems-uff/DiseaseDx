@@ -171,3 +171,5 @@ local_test*.py
 .vscode/
 
 test*.py
+
+requirements.txt

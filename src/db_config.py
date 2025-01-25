@@ -34,7 +34,7 @@ class DatabaseConfig:
     
 
     def populate_with_examples(self):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
 
             # Criando os objetos de Manifestacao e RegiaoDoCorpo
             dor = Manifestacao(name="Dor")

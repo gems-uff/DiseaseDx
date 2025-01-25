@@ -12,8 +12,22 @@ with st.sidebar:
         st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
         st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
         st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
-st.title("Diagramas de Classe e Objeto")
+st.title("Listar Doencas de um Sintoma")
 
 
-st.image("images/tcc_class_diagram.png", caption="Diagrama de Classe", use_container_width=True)
-st.image("images/tcc_object_diagram.png", caption="Diagrama de Objeto", use_container_width=True)
+sq = StreamlitQueries()
+
+
+# Obter todos os sintomas do banco de dados
+sintomas = sq.get_all_sintomas()
+st.write("Lista de todos os Sintomas:", sintomas)
+
+
+# Create a dropdown option to select a specific symptom to search for diseases
+sintoma = st.selectbox("Selecione o sintoma", sintomas)
+
+
+# Listar as doenças associadas ao sintoma
+diagnosticos = sq.get_diagnosticos_by_sintoma(sintoma)
+doencas = [diagnostico.doenca for diagnostico in diagnosticos]
+st.write(f"Doenças do Sintoma:", doencas)

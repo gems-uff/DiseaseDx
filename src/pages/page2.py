@@ -8,10 +8,10 @@ from utils import StreamlitQueries
 
 
 with st.sidebar:
-        st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
-        st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
-        st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-        st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
+	st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
+	st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
+	st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
+	st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
 st.title("Filtrar Doencas por Sintomas")
 
 
@@ -24,14 +24,25 @@ st.write("Lista de todos os Sintomas:", sintomas)
 
 
 # TODO: Descobrir como filtrar os itens dos multiselects baseados nas escolhas do outro (se um sintoma está presente, ele não pode ser escolhido como ausente e vice-versa)
-present_sintomas = st.multiselect("Selecione os sintomas presentes", sintomas)
-not_present_sintomas = st.multiselect("Selecione os sintomas ausentes", sintomas)
+present_sintomas = st.multiselect(
+	"Selecione os sintomas presentes", 
+	sintomas,
+	format_func=lambda sintoma: f"{sintoma.manifestacao.name} no (a) {sintoma.regiao_do_corpo.name}" if sintoma.regiao_do_corpo else f"{sintoma.manifestacao.name}",
+	placeholder="Selecione os sintomas presentes"
+)
+not_present_sintomas = st.multiselect(
+	"Selecione os sintomas ausentes", 
+	sintomas,
+	format_func=lambda sintoma: f"{sintoma.manifestacao.name} no (a) {sintoma.regiao_do_corpo.name}" if sintoma.regiao_do_corpo else f"{sintoma.manifestacao.name}",
+	placeholder="Selecione os sintomas ausentes"
+)
 
 
 # Listar as doenças associadas ao sintoma
 diagnosticos = sq.get_diagnosticos_by_list_of_sintomas(present_sintomas, not_present_sintomas)
 doencas = [diagnostico.doenca for diagnostico in diagnosticos]
 st.write("Possiveis Doencas:", doencas)
+
 
 # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
 sq.st_write_doenca_sintomas_table()

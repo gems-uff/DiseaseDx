@@ -8,10 +8,10 @@ from utils import StreamlitQueries
 
 
 with st.sidebar:
-        st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
-        st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
-        st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-        st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
+	st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
+	st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
+	st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
+	st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
 st.title("Listar Doencas de um Sintoma")
 
 
@@ -24,10 +24,17 @@ st.write("Lista de todos os Sintomas:", sintomas)
 
 
 # Create a dropdown option to select a specific symptom to search for diseases
-sintoma = st.selectbox("Selecione o sintoma", sintomas)
+sintoma = st.selectbox(
+    "Selecione o sintoma", 
+	sintomas, 
+	index=None, 
+	format_func=lambda sintoma: f"{sintoma.manifestacao.name} no (a) {sintoma.regiao_do_corpo.name}" if sintoma.regiao_do_corpo else f"{sintoma.manifestacao.name}",
+	placeholder="Selecione um sintoma"
+)
 
 
 # Listar as doenças associadas ao sintoma
-diagnosticos = sq.get_diagnosticos_by_sintoma(sintoma)
-doencas = [diagnostico.doenca for diagnostico in diagnosticos]
-st.write(f"Doenças do Sintoma:", doencas)
+if sintoma:
+	diagnosticos = sq.get_diagnosticos_by_sintoma(sintoma)
+	doencas = [diagnostico.doenca for diagnostico in diagnosticos]
+	st.write(f"Doenças do Sintoma:", doencas)

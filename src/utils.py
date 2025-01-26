@@ -1,5 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectin_polymorphic, subqueryload, selectinload
 from db_config import DatabaseConfig
 from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao
 import streamlit as st
@@ -66,7 +66,13 @@ class StreamlitQueries():
                 if diag.doenca == target_doenca:
                     sintomas = self.get_all_sintomas_from_expression(diag.expressao)
             
-            st.write(f"Sintomas da doença {target_doenca.name}:", sintomas) # TODO: Investigar como resolver o problema do DetachedInstanceError que ocorre caso eu não faça essa chamada
+            # TODO: Melhor do que usar o st.write como gambiarra mas pode ser melhorado entendendo os tipos de load do sqlalchemy como selectin polymorphic
+            for sintoma in sintomas:
+                if sintoma.regiao_do_corpo != None:
+                    sintoma.regiao_do_corpo = session.get(RegiaoDoCorpo, sintoma.regiao_do_corpo_id)
+                sintoma.manifestacao = session.get(Manifestacao, sintoma.manifestacao_id)
+            # TODO: Investigar como resolver o problema do DetachedInstanceError que ocorre caso eu não faça essa chamada
+            # st.write(f"Sintomas da doença {target_doenca.name}:", sintomas)
 
             return sintomas
 
@@ -111,6 +117,7 @@ class StreamlitQueries():
 
             return diagnosticos_filtrados
         
+        
     # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
     def st_write_sintoma_doencas_table(self):
         df = pd.DataFrame(columns=["Sintoma", "Doenças", "Count"])
@@ -131,6 +138,7 @@ class StreamlitQueries():
                     "Count": len(doencas_names)
                 }])], ignore_index=True)
         st.dataframe(df)
+
 
     # Criar um dataframe para exibir todos os sintomas de uma doença
     def st_write_doenca_sintomas_table(self):

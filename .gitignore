@@ -173,3 +173,5 @@ local_test*.py
 test*.py
 
 requirements.txt
+
+src/.streamlit/secrets.toml

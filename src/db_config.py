@@ -1,4 +1,5 @@
 import os
+import streamlit as st
 from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
@@ -6,8 +7,6 @@ from sqlalchemy.orm import Session
 from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico
 
 
-
-# Configuração do banco de dados
 class DatabaseConfig:
     def __init__(self):
         self.username = os.getenv('MYSQL_USER')
@@ -15,27 +14,26 @@ class DatabaseConfig:
         self.server = "localhost"
         self.port = "3306"
         self.dbname = "diseasedx_test"
-        self.connection_string = "sqlite://" #f"mysql+mysqlconnector://{self.username}:{self.password}@{self.server}:{self.port}/{self.dbname}" # "sqlite://" - Cria em memória / "sqlite:///mylocaldb.db" - Cria uma db local
+        self.connection_string = f"mysql+mysqlconnector://{self.username}:{self.password}@{self.server}:{self.port}/{self.dbname}"
+        # self.connection_string = "sqlite:///mylocaldb.db" # python src/db_config.py to first create the database
         self.engine = create_engine(self.connection_string, echo=False)
 
 
-    # Inicia o banco de dados com as tabelas definidas em models.py
+    @st.cache_resource
+    def load_engine(_self):
+        return _self.engine
+    
+
     def init_db(self):
         if database_exists(self.engine.url):
             drop_database(self.engine.url)
-
         create_database(self.engine.url)
-
         Base.metadata.create_all(self.engine)
-
         self.populate_with_examples()
-
-        return self.engine
-    
+        
 
     def populate_with_examples(self):
         with Session(self.engine, expire_on_commit=False) as session:
-
             # Criando os objetos de Manifestacao e RegiaoDoCorpo
             dor = Manifestacao(name="Dor")
             artrite = Manifestacao(name="Artrite")
@@ -119,3 +117,12 @@ class DatabaseConfig:
             session.add(fmf2)
             session.add(diabetes)
             session.commit()
+
+if __name__ == "__main__":
+    db_config = DatabaseConfig()
+    try:
+        db_config.init_db()
+        print("Database initialized successfully!")
+    except Exception as e:
+        print(e)
+        print(f"Error while initializing database: {e}")

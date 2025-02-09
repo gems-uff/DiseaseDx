@@ -3,6 +3,30 @@ from sqlalchemy import ForeignKey, String, Float, Integer, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
+class FatosSintomaResultado(): # Context
+    def __init__(self, sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes):
+        self.fatos = {}
+        for sintoma in sintomas:
+            if sintoma in sintomas_presentes:
+                self.fatos[sintoma] = True
+            elif sintoma in sintomas_ausentes:
+                self.fatos[sintoma] = False
+            else:
+                self.fatos[sintoma] = "Possivel"
+        for resultado in resultados:
+            if resultado in resultados_presentes:
+                self.fatos[resultado] = True
+            elif resultado in resultados_ausentes:
+                self.fatos[resultado] = False
+            else:
+                self.fatos[resultado] = "Possivel"
+        print(f"Fatos:")
+        for fato in self.fatos:
+            print(f"-> {fato} = {self.fatos[fato]}")
+    
+    def __getitem__(self, fato):
+        return self.fatos.get(fato, True)
+
 
 # Classe base declarativa
 class Base(DeclarativeBase):
@@ -29,6 +53,12 @@ class Expressao(Base):
         "polymorphic_on": "type",
     }
 
+    def avalia(self, fatos: FatosSintomaResultado): # Interpret
+        raise NotImplementedError("Subclasses devem implementar este método")
+
+    def contem(self, fato):
+        raise NotImplementedError("Subclasses devem implementar este método")
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id!r})"
 
@@ -51,6 +81,12 @@ class And(Expressao):
     def __init__(self, left: Expressao, right: Expressao):
         self.left_expr = left
         self.right_expr = right
+
+    def avalia(self, fatos: FatosSintomaResultado):
+        return self.left_expr.avalia(fatos) and self.right_expr.avalia(fatos)
+    
+    def contem(self, fato):
+        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
@@ -75,6 +111,12 @@ class Or(Expressao):
         self.left_expr = left
         self.right_expr = right
 
+    def avalia(self, fatos: FatosSintomaResultado):
+        return self.left_expr.avalia(fatos) or self.right_expr.avalia(fatos)
+    
+    def contem(self, fato):
+        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
 
@@ -93,6 +135,18 @@ class AoMenos(Expressao):
     def __init__(self, qtd: int, expressoes: list[Expressao]):
         self.qtd = qtd
         self.expressoes = expressoes
+
+    def avalia(self, fatos: FatosSintomaResultado):
+        count = self.qtd
+        for exp in self.expressoes:
+            if exp.avalia(fatos):
+                count -= 1
+                if count == 0:
+                    return True
+        return False
+    
+    def contem(self, fato):
+        return any(expr.contem(fato) for expr in self.expressoes)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.qtd!r})({self.expressoes!r})"
@@ -179,6 +233,23 @@ class Sintoma(Expressao):
         self.manifestacao = manifestacao
         self.regiao_do_corpo = regiao_do_corpo
 
+    def avalia(self, fatos):
+        if (fatos[self] == "Possivel"):
+            return True
+        else:
+            return fatos[self]
+        
+    def contem(self, fato):
+        return self == fato
+        
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, Sintoma):
+            return self.id == other.id
+        return False
+
     def __repr__(self):
         return f"{self.__class__.__name__}({self.manifestacao!r})({self.regiao_do_corpo!r})"
 
@@ -206,6 +277,27 @@ class Resultado(Expressao):
     __mapper_args__ = {
         "polymorphic_identity": "resultado",
     }
+
+    def __init__ (self, name: str, exame: Exame):
+        self.name = name
+        self.exame = exame
+
+    def avalia(self, fatos):
+        if (fatos[self] == "Possivel"):
+            return True
+        else:
+            return fatos[self]
+        
+    def contem(self, fato):
+        return self == fato
+        
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        if isinstance(other, Resultado):
+            return self.id == other.id
+        return False
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.name!r})"

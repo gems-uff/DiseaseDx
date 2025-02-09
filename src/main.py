@@ -1,10 +1,4 @@
-from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload
-from db_config import DatabaseConfig
-from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao
 import streamlit as st
-import pandas as pd
-from utils import StreamlitQueries
 
 
 with st.sidebar:

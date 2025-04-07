@@ -53,6 +53,7 @@ class DatabaseConfig:
             artrite_no_ombro = Sintoma(artrite, ombro)
             coceira_no_olho = Sintoma(coceira, olho)
             coceira_na_mao = Sintoma(coceira, mao)
+            febre = Sintoma(Manifestacao(name="Febre")) # Criei so pra ter um sintoma comum em todos e testar o sintoma comum
 
             # Criando os objetos de Exame e Resultado
             exame_mefv = Exame(name="MEFV", preco="R$3500,00")
@@ -65,19 +66,19 @@ class DatabaseConfig:
                     variante_mefv_patogenica,
                     AoMenos(
                         1,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
+                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro, febre]
                     )
                 ),
                 And(
                     vus_de_mefv,
                     AoMenos(
                         2,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
+                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro, febre]
                     )
                 )
             )
 
-            fmf2_expr = Or(
+            fmf2_expr = Or( # Posso trocar pra And pra validar
                 And(
                     variante_mefv_patogenica,
                     coceira_na_mao
@@ -86,7 +87,7 @@ class DatabaseConfig:
                     vus_de_mefv,
                     AoMenos(
                         2,
-                        [dor_no_tronco, dor_no_abdome, coceira_no_olho]
+                        [dor_no_tronco, dor_no_abdome, coceira_no_olho, febre]
                     )
                 )
             )
@@ -97,25 +98,55 @@ class DatabaseConfig:
                     2,
                     [
                         Sintoma(Manifestacao(name="Sede")),
-                        Sintoma(Manifestacao(name="Vontade de urinar varias vezes"))
+                        Sintoma(Manifestacao(name="Vontade de urinar varias vezes")),
+                        febre
                     ]
                 )
             )
+
+            # caps_expr = Or(
+            #     And(
+            #         Resultado(name="Presença confirmatória NLRP3", exame=Exame(name="NLRP3", preco="R$500,00")),
+            #         AoMenos(
+            #             qtd=1,
+            #             expressoes=[
+            #                 Sintoma(Manifestacao(name="Erupção Urticariforme"), RegiaoComposta(name="Pele")),
+            #                 Sintoma(Manifestacao(name="Vermelidão"), Orgao(name="Olho")),
+            #                 Sintoma(Manifestacao(name="Perda Auditiva"), Orgao(name="Ouvido"))
+            #             ]
+            #         )
+            #     ),
+            #     And(
+            #         Resultado(name="Presença NÃO confirmatória NLRP3", exame=Exame(name="NLRP3", preco="R$500,00")),
+            #         AoMenos(
+            #             qtd=2,
+            #             expressoes=[
+            #                 Sintoma(Manifestacao(name="Erupção Urticariforme"), RegiaoComposta(name="Pele")),
+            #                 Sintoma(Manifestacao(name="Vermelidão"), Orgao(name="Olho")),
+            #                 Sintoma(Manifestacao(name="Perda Auditiva"), Orgao(name="Ouvido"))
+            #             ]
+            #         )
+            #     )
+            # )
 
             # Criando uma doença e um diagnóstico para a expressão
             fmf = Doenca(name="Familial Mediterranean Fever")
             diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
 
-            fmf2 = Doenca(name="Familial Maisumteste Febre")
+            fmf2 = Doenca(name="Teste com FMF um pouco diferente")
             diag = Diagnostico(sensibilidade=0.9, especificidade=0.84, acuracia=0.76, doenca=fmf2, expressao=fmf2_expr)
 
             diabetes = Doenca(name="Diabetes")
             diag = Diagnostico(doenca=diabetes, expressao=diabetes_expr)
 
+            # caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
+            # diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=caps_expr)
+
             # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
             session.add(fmf)
             session.add(fmf2)
             session.add(diabetes)
+            # session.add(caps)
             session.commit()
 
 if __name__ == "__main__":

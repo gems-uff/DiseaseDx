@@ -2,11 +2,7 @@ import streamlit as st
 from utils import StreamlitQueries
 
 
-with st.sidebar:
-	st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
-	st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
-	st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-	st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
+st.set_page_config(layout="wide")
 st.title("Listar Doencas de um Sintoma")
 
 

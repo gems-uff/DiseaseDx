@@ -1,13 +1,17 @@
 import streamlit as st
 from utils import StreamlitQueries
+from models import Sintoma
 
 
-with st.sidebar:
-	st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
-	st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
-	st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-	st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
+st.set_page_config(layout="wide")
 st.title("Filtrar Doencas por Sintomas")
+
+
+def format_func(item):
+    if isinstance(item, Sintoma):
+        return f"{item.manifestacao.name} no(a) {item.regiao_do_corpo.name}" if item.regiao_do_corpo else f"{item.manifestacao.name}"
+    else:
+        return f"{item.name} do exame {item.exame}"
 
 
 sq = StreamlitQueries()
@@ -17,6 +21,7 @@ sq = StreamlitQueries()
 sintomas = sq.get_all_sintomas()
 resultados = sq.get_all_resultados()
 
+
 col1, col2 = st.columns(2)
 
 # TODO: Descobrir como filtrar os itens dos multiselects baseados nas escolhas do outro 
@@ -25,14 +30,14 @@ with col1:
 	present_sintomas = st.multiselect(
 		"Selecione os sintomas presentes", 
 		sintomas,
-		format_func=lambda sintoma: f"{sintoma.manifestacao.name} no (a) {sintoma.regiao_do_corpo.name}" if sintoma.regiao_do_corpo else f"{sintoma.manifestacao.name}",
+		format_func=lambda sintoma: format_func(sintoma),
 		placeholder="Selecione os sintomas presentes"
 	)
 
 	present_resultados = st.multiselect(
 		"Selecione os resultados presentes", 
 		resultados,
-		format_func=lambda resultado: f"{resultado.name} do exame {resultado.exame}",
+		format_func=lambda resultado: format_func(resultado),
 		placeholder="Selecione os resultados presentes"
 	)
 
@@ -40,14 +45,14 @@ with col2:
 	not_present_sintomas = st.multiselect(
 		"Selecione os sintomas ausentes", 
 		sintomas,
-		format_func=lambda sintoma: f"{sintoma.manifestacao.name} no (a) {sintoma.regiao_do_corpo.name}" if sintoma.regiao_do_corpo else f"{sintoma.manifestacao.name}",
+		format_func=lambda sintoma: format_func(sintoma),
 		placeholder="Selecione os sintomas ausentes"
 	)
 
 	not_present_resultados = st.multiselect(
 		"Selecione os resultados ausentes", 
 		resultados,
-		format_func=lambda resultado: f"{resultado.name} do exame {resultado.exame}",
+		format_func=lambda resultado: format_func(resultado),
 		placeholder="Selecione os resultados ausentes"
 	)
 

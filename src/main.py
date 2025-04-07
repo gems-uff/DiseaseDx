@@ -1,13 +1,22 @@
 import streamlit as st
 
 
-with st.sidebar:
-	st.page_link('main.py', label='Diagramas de Classe e Objeto', icon='📊')
-	st.page_link('pages/page0.py', label='Listar Doencas de um Sintoma', icon='📝')
-	st.page_link('pages/page1.py', label='Contador de Sintomas', icon='🔢')
-	st.page_link('pages/page2.py', label='Filtrar Doencas por Sintomas', icon='🔬')
-st.title("Diagramas de Classe e Objeto")
+diagrams = st.Page("app_pages/diagrams.py", title="Diagramas de Classe e Objeto", icon="📊")
+listar_doencas_do_sintoma = st.Page("app_pages/listar_doencas_do_sintoma.py", title="Listar Doencas de um Sintoma", icon="📝")
+contador_de_sintomas = st.Page("app_pages/contador_de_sintomas.py", title="Contador de Sintomas", icon="🔢")
+filtrar_doenca_por_sintomas = st.Page("app_pages/filtrar_doenca_por_sintomas.py", title="Filtrar Doencas por Sintomas", icon="🔬")
+auxiliar_no_diagnostico = st.Page("app_pages/auxiliar_no_diagnostico.py", title="Auxiliar no Diagnostico", icon="🩺")
 
 
-st.image("images/tcc_class_diagram.png", caption="Diagrama de Classe", use_container_width=True)
-st.image("images/tcc_object_diagram.png", caption="Diagrama de Objeto", use_container_width=True)
+pg = st.navigation(
+	[
+		diagrams,
+		listar_doencas_do_sintoma, 
+		contador_de_sintomas, 
+		filtrar_doenca_por_sintomas, 
+		auxiliar_no_diagnostico
+	]
+)
+
+
+pg.run()

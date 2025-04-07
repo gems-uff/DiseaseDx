@@ -132,7 +132,7 @@ class StreamlitQueries():
             return resultados
 
 
-    # Função para buscar todas as doenças associadas a um sintoma
+    # Função para buscar todos os diagnósticos associados a um sintoma
     def get_diagnosticos_by_sintoma(self, sintoma):
         with Session(self.engine) as session:
             sintoma = session.get(Sintoma, sintoma.id)
@@ -145,6 +145,24 @@ class StreamlitQueries():
             diagnosticos_filtrados = {}
             for diag in diagnosticos:
                 if self.contains_expression(diag.expressao, sintoma):
+                    diagnosticos_filtrados[diag] = diag.expressao
+
+            return diagnosticos_filtrados
+        
+
+    # Função para buscar todos os diagnósitcos associados a um resultado
+    def get_diagnosticos_by_resultado(self, resultado):
+        with Session(self.engine) as session:
+            resultado = session.get(Resultado, resultado.id)
+
+            diagnosticos = session.query(Diagnostico).options(
+                joinedload(Diagnostico.doenca),
+                joinedload(Diagnostico.expressao)
+            ).all()
+
+            diagnosticos_filtrados = {}
+            for diag in diagnosticos:
+                if self.contains_expression(diag.expressao, resultado):
                     diagnosticos_filtrados[diag] = diag.expressao
 
             return diagnosticos_filtrados
@@ -188,6 +206,7 @@ class StreamlitQueries():
             # TODO: Validar essa lógica novamente
             fatos = FatosSintomaResultado(sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes)
             for diag in diagnosticos:
+                print(f"\nDoença: {diag.doenca.name}")
                 # Avalia checa se a expressão do diagnóstico é True a partir dos fatos (sintomas/resultados presentes e ausentes)
                 # Se o sintoma/resultado não estiver presente nem ausente, consideramos ele como "Possivel" e o avaliamos como True para que não seja descartado
                 if diag.expressao.avalia(fatos):
@@ -204,7 +223,59 @@ class StreamlitQueries():
 
             return diagnosticos_filtrados
         
-        
+    
+    # Função para buscar o sintoma mais comum entre todos os diagnósticos
+    def get_most_common_sintoma(self, sintomas, present_sintomas, not_present_sintomas):
+        max_ammount = 0
+        with Session(self.engine) as session:
+
+            if len(sintomas) == 0:
+                sintomas = self.get_all_sintomas()
+            else:
+                sintomas = [session.get(Sintoma, sintoma.id) for sintoma in sintomas]
+
+            not_already_selected_sintomas = [sintoma for sintoma in sintomas if sintoma not in present_sintomas and sintoma not in not_present_sintomas]
+
+            for sintoma in not_already_selected_sintomas:
+                diagnosticos = self.get_diagnosticos_by_sintoma(sintoma)
+                ammount = len(diagnosticos)
+                if ammount > max_ammount:
+                    max_ammount = ammount
+                    most_common_sintoma = sintoma
+
+            most_common_sintoma.manifestacao = session.get(Manifestacao, most_common_sintoma.manifestacao_id)  
+            if most_common_sintoma.regiao_do_corpo != None:
+                most_common_sintoma.regiao_do_corpo = session.get(RegiaoDoCorpo, most_common_sintoma.regiao_do_corpo_id)      
+
+        return most_common_sintoma
+    
+    
+    # Função para buscar o resultado mais comum entre todos os diagnósticos
+    def get_most_common_resultado(self, resultados, present_resultados, not_present_resultados):
+        max_ammount = 0
+        with Session(self.engine) as session:
+
+            if len(resultados) == 0:
+                resultados = self.get_all_resultados()
+            else:
+                resultados = [session.get(Resultado, resultado.id) for resultado in resultados]
+
+            not_already_selected_resultados = [resultado for resultado in resultados if resultado not in present_resultados and resultado not in not_present_resultados]
+
+            for resultado in not_already_selected_resultados:
+                diagnosticos = self.get_diagnosticos_by_resultado(resultado)
+                ammount = len(diagnosticos)
+                if ammount > max_ammount:
+                    max_ammount = ammount
+                    most_common_resultado = resultado
+
+            most_common_resultado.exame = session.get(Exame, most_common_resultado.exame_id)  
+
+        return most_common_resultado
+
+
+
+
     # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
     def st_write_sintoma_doencas_table(self):
         df = pd.DataFrame(columns=["Sintoma", "Doenças", "Count"])

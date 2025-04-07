@@ -53,7 +53,7 @@ class Expressao(Base):
         "polymorphic_on": "type",
     }
 
-    def avalia(self, fatos: FatosSintomaResultado): # Interpret
+    def avalia(self, fatos: FatosSintomaResultado, level=0): # Interpret
         raise NotImplementedError("Subclasses devem implementar este método")
 
     def contem(self, fato):
@@ -61,6 +61,9 @@ class Expressao(Base):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id!r})"
+    
+    def printtree(self, level=0):
+        pass
 
 
 class And(Expressao):
@@ -82,14 +85,22 @@ class And(Expressao):
         self.left_expr = left
         self.right_expr = right
 
-    def avalia(self, fatos: FatosSintomaResultado):
-        return self.left_expr.avalia(fatos) and self.right_expr.avalia(fatos)
+    def avalia(self, fatos: FatosSintomaResultado, level=0):
+        result = self.left_expr.avalia(fatos, level+1) and self.right_expr.avalia(fatos, level+1)
+        print(f"{' ' * 4 * level}{result} : AND")
+        # print(f"-> {result} : {self}")
+        return result
     
     def contem(self, fato):
         return self.left_expr.contem(fato) or self.right_expr.contem(fato)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
+    
+    def printtree(self, level=0):
+        print(f"{' ' * 4 * level}AND")
+        self.left_expr.printtree(level + 1)
+        self.right_expr.printtree(level + 1)
 
 
 class Or(Expressao):
@@ -111,14 +122,22 @@ class Or(Expressao):
         self.left_expr = left
         self.right_expr = right
 
-    def avalia(self, fatos: FatosSintomaResultado):
-        return self.left_expr.avalia(fatos) or self.right_expr.avalia(fatos)
+    def avalia(self, fatos: FatosSintomaResultado, level=0):
+        result = self.left_expr.avalia(fatos, level+1) or self.right_expr.avalia(fatos, level+1)
+        print(f"{' ' * 4 * level}{result} : OR")
+        # print(f"-> {result} : {self}")
+        return result
     
     def contem(self, fato):
         return self.left_expr.contem(fato) or self.right_expr.contem(fato)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
+    
+    def printtree(self, level=0):
+        print(f"{' ' * level}OR")
+        self.left_expr.printtree(level + 1)
+        self.right_expr.printtree(level + 1)
 
 
 class AoMenos(Expressao):
@@ -136,13 +155,17 @@ class AoMenos(Expressao):
         self.qtd = qtd
         self.expressoes = expressoes
 
-    def avalia(self, fatos: FatosSintomaResultado):
+    def avalia(self, fatos: FatosSintomaResultado, level=0):
         count = self.qtd
         for exp in self.expressoes:
-            if exp.avalia(fatos):
+            if exp.avalia(fatos, level+1):
                 count -= 1
                 if count == 0:
+                    # print(f"-> True : {self}")
+                    print(f"{' ' * 4 * level}True : AoMenos({self.qtd})")
                     return True
+        # print(f"-> False : {self}")
+        print(f"{' ' * 4 * level}False : AoMenos({self.qtd})")
         return False
     
     def contem(self, fato):
@@ -150,6 +173,11 @@ class AoMenos(Expressao):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.qtd!r})({self.expressoes!r})"
+    
+    def printtree(self, level=0):
+        print(f"{' ' * 4 * level}AoMenos({self.qtd})")
+        for expr in self.expressoes:
+            expr.printtree(level + 1)
 
 
 regioes_da_parte = Table(
@@ -174,7 +202,7 @@ class RegiaoDoCorpo(Base):
     }
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"({self.name})"
 
 
 class RegiaoComposta(RegiaoDoCorpo):
@@ -192,7 +220,7 @@ class RegiaoComposta(RegiaoDoCorpo):
         self.regioes = regioes
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.name}"
     
 
 class Orgao(RegiaoDoCorpo):
@@ -204,7 +232,7 @@ class Orgao(RegiaoDoCorpo):
     }
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.name}"
 
 
 class Manifestacao(Base):
@@ -213,7 +241,7 @@ class Manifestacao(Base):
     name: Mapped[str] = mapped_column(String(255))
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.name}"
 
 
 class Sintoma(Expressao):
@@ -233,10 +261,12 @@ class Sintoma(Expressao):
         self.manifestacao = manifestacao
         self.regiao_do_corpo = regiao_do_corpo
 
-    def avalia(self, fatos):
+    def avalia(self, fatos, level=0):
         if (fatos[self] == "Possivel"):
+            print(f"{' ' * 4 * level}True : {self}")
             return True
         else:
+            print(f"{' ' * 4 * level}{fatos[self]} : {self}")
             return fatos[self]
         
     def contem(self, fato):
@@ -251,7 +281,13 @@ class Sintoma(Expressao):
         return False
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.manifestacao!r})({self.regiao_do_corpo!r})"
+        if self.regiao_do_corpo:
+            return f"{self.manifestacao} no(a) {self.regiao_do_corpo}"
+        else:
+            return f"{self.manifestacao}"
+    
+    def printtree(self, level=0):
+        print(f"{' ' * 4 * level}{self.__class__.__name__}({self.manifestacao})({self.regiao_do_corpo})")
 
 
 class Exame(Base):
@@ -282,10 +318,12 @@ class Resultado(Expressao):
         self.name = name
         self.exame = exame
 
-    def avalia(self, fatos):
+    def avalia(self, fatos, level=0):
         if (fatos[self] == "Possivel"):
+            print(f"{' ' * 4 * level}True : {self}")
             return True
         else:
+            print(f"{' ' * 4 * level}{fatos[self]} : {self}")
             return fatos[self]
         
     def contem(self, fato):
@@ -300,7 +338,10 @@ class Resultado(Expressao):
         return False
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.name}"
+    
+    def printtree(self, level=0):
+        print(f"{' ' * 4 * level}{self.__class__.__name__}({self.name})")
 
 
 class Doenca(Base):
@@ -310,7 +351,7 @@ class Doenca(Base):
     diagnostico: Mapped["Diagnostico"] = relationship("Diagnostico", back_populates="doenca") # Doenca tem 1 Diagnostico e Diagnostico tem 1 Expressao que tem 1 ou mais Expressoes
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.name!r})"
+        return f"{self.name}"
     
 
 class Diagnostico(Base):

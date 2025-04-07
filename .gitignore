@@ -175,3 +175,5 @@ test*.py
 requirements.txt
 
 src/.streamlit/secrets.toml
+
+duvidas.md

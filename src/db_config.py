@@ -26,127 +26,211 @@ class DatabaseConfig:
 
     def init_db(self):
         if database_exists(self.engine.url):
+            print(f"Database {self.dbname} already exists. Dropping it...")
             drop_database(self.engine.url)
         create_database(self.engine.url)
+        print(f"Database {self.dbname} created successfully.")
         Base.metadata.create_all(self.engine)
+        print("Tables created successfully.")
         self.populate_with_examples()
+        print("Populated database with example data.")
         
 
     def populate_with_examples(self):
         with Session(self.engine, expire_on_commit=False) as session:
-            # Criando os objetos de Manifestacao e RegiaoDoCorpo
+
+            # Criando os objetos de Manifestacao
             dor = Manifestacao(name="Dor")
             artrite = Manifestacao(name="Artrite")
-            coceira = Manifestacao(name="Coceira")
+            coceira = Manifestacao(name="Coceira") # rash
+            feb = Manifestacao(name="Febre")
+            vermelhidao = Manifestacao(name="Vermelhidão")
+            perda = Manifestacao(name="Perda")
+            edema = Manifestacao(name="Edema")
+            inflamacao = Manifestacao(name="Inflamação")
+            inchaco = Manifestacao(name="Inchaço")
+            ulcera = Manifestacao(name="Úlcera")
+            coceira_mig = Manifestacao(name="Coceira Migratória")
+
+
+            #Criando os objetos de Orgao
             ombro = Orgao(name="Ombro")
             pulmao = Orgao(name="Pulmão")
             estomago = Orgao(name="Estômago")
             olho = Orgao(name="Olho")
+            ouvido = Orgao(name="Ouvido")
+            osso = Orgao(name="Osso")
+            boca = Orgao(name="Boca")
+
+
+            # Criando os objetos de RegiaoComposta
             abdome = RegiaoComposta(name="Abdome", regioes=[estomago])
             torax = RegiaoComposta(name="Tórax", regioes=[pulmao])
             tronco = RegiaoComposta(name="Tronco", regioes=[abdome, torax])
             mao = RegiaoComposta(name="Mão")
+            pele = RegiaoComposta(name="Pele")
+            audicao = RegiaoComposta(name="Audição", regioes=[ouvido])
+            musculo = RegiaoComposta(name="Músculo")
+            periorbital = RegiaoComposta(name="Periorbital", regioes=[olho])
+            gastrointestinal = RegiaoComposta(name="Gastrointestinal", regioes=[abdome])
+            pescoco = RegiaoComposta(name="Pescoço")
+            cervical = RegiaoComposta(name="Cervical", regioes=[pescoco])
+            corpo = RegiaoComposta(name="Corpo")
+
 
             # Criando os objetos de Sintoma
+            febre = Sintoma(feb) # Criei so pra ter um sintoma comum em todos e testar o sintoma comum
             dor_no_tronco = Sintoma(dor, tronco)
             dor_no_abdome = Sintoma(dor, abdome)
             artrite_no_ombro = Sintoma(artrite, ombro)
             coceira_no_olho = Sintoma(coceira, olho)
             coceira_na_mao = Sintoma(coceira, mao)
-            febre = Sintoma(Manifestacao(name="Febre")) # Criei so pra ter um sintoma comum em todos e testar o sintoma comum
+            coceira_na_pele = Sintoma(coceira, pele)
+            vermelhidao_no_olho = Sintoma(vermelhidao, olho)
+            perda_de_audição = Sintoma(perda, audicao)
+            artrite_no_corpo = Sintoma(artrite, corpo)
+            dor_no_peito = Sintoma(dor, torax)
+            dor_muscular = Sintoma(dor, musculo)
+            coceira_migratoria = Sintoma(coceira_mig)
+            edema_periorbital = Sintoma(edema, periorbital)
+            inflamacao_gastrointestinal = Sintoma(inflamacao, gastrointestinal)
+            inchaco_cervical = Sintoma(inchaco, cervical)
+            ulcera_na_boca = Sintoma(ulcera, boca)
+
 
             # Criando os objetos de Exame e Resultado
-            exame_mefv = Exame(name="MEFV", preco="R$3500,00")
+            exame_nlrp3 = Exame(name="NLRP3", preco="R$3500,00")
+            variante_nlrp3_patogenica = Resultado(name="Variante NLRP3 patogênica", exame=exame_nlrp3)
+            vus_de_nlrp3 = Resultado(name="VUS de NLRP3", exame=exame_nlrp3)
+
+            exame_mefv = Exame(name="MEFV", preco="R$3000,00")
             variante_mefv_patogenica = Resultado(name="Variante MEFV patogênica", exame=exame_mefv)
             vus_de_mefv = Resultado(name="VUS de MEFV", exame=exame_mefv)
 
-            # Criando a expressão para a doença Familial Mediterranean Fever
+            exame_tnfrsf1a = Exame(name="TNFRSF1A", preco="R$3300,00")
+            variante_tnfrsf1a_patogenica = Resultado(name="Variante TNFRSF1A patogênica", exame=exame_tnfrsf1a)
+            vus_de_tnfrsf1a = Resultado(name="VUS de TNFRSF1A", exame=exame_tnfrsf1a)
+
+            exame_mvk = Exame(name="MVK", preco="R$3200,00")
+            variante_mvk_patogenica = Resultado(name="Variante MVK patogênica", exame=exame_mvk)
+            vus_de_mvk = Resultado(name="VUS de MVK", exame=exame_mvk)
+
+
+            # Criando os ojetos das Expressões
+            nlrp3_expr = Or(
+                And(
+                    variante_nlrp3_patogenica,
+                    AoMenos(
+                        1,
+                        [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
+                    )
+                ),
+                And(
+                    vus_de_nlrp3,
+                    AoMenos(
+                        2,
+                        [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
+                    )
+                )
+            )
+
             fmf_expr = Or(
                 And(
                     variante_mefv_patogenica,
                     AoMenos(
                         1,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro, febre]
+                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
                     )
                 ),
                 And(
                     vus_de_mefv,
                     AoMenos(
                         2,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro, febre]
+                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
                     )
                 )
             )
 
-            fmf2_expr = Or( # Posso trocar pra And pra validar
+            tnfrsf1a_expr = Or(
                 And(
-                    variante_mefv_patogenica,
-                    coceira_na_mao
+                    variante_tnfrsf1a_patogenica,
+                    AoMenos(
+                        1,
+                        [dor_muscular, coceira_migratoria, edema_periorbital]
+                    )
                 ),
                 And(
-                    vus_de_mefv,
+                    vus_de_tnfrsf1a,
                     AoMenos(
                         2,
-                        [dor_no_tronco, dor_no_abdome, coceira_no_olho, febre]
+                        [dor_muscular, coceira_migratoria, edema_periorbital]
                     )
                 )
             )
 
-            diabetes_expr = And(
-                Resultado(name="Glicose > 126 mg/dL", exame=Exame(name="Glicemia de jejum", preco="R$50,00")),
+            mvk_expr = And(
+                variante_mvk_patogenica,
                 AoMenos(
-                    2,
-                    [
-                        Sintoma(Manifestacao(name="Sede")),
-                        Sintoma(Manifestacao(name="Vontade de urinar varias vezes")),
-                        febre
-                    ]
+                    1,
+                    [inflamacao_gastrointestinal, inchaco_cervical, ulcera_na_boca]
                 )
             )
 
-            # caps_expr = Or(
+            # # Inventada
+            # fmf2_expr = Or( # Posso trocar pra And pra validar
             #     And(
-            #         Resultado(name="Presença confirmatória NLRP3", exame=Exame(name="NLRP3", preco="R$500,00")),
-            #         AoMenos(
-            #             qtd=1,
-            #             expressoes=[
-            #                 Sintoma(Manifestacao(name="Erupção Urticariforme"), RegiaoComposta(name="Pele")),
-            #                 Sintoma(Manifestacao(name="Vermelidão"), Orgao(name="Olho")),
-            #                 Sintoma(Manifestacao(name="Perda Auditiva"), Orgao(name="Ouvido"))
-            #             ]
-            #         )
+            #         variante_mefv_patogenica,
+            #         coceira_na_mao
             #     ),
             #     And(
-            #         Resultado(name="Presença NÃO confirmatória NLRP3", exame=Exame(name="NLRP3", preco="R$500,00")),
+            #         vus_de_mefv,
             #         AoMenos(
-            #             qtd=2,
-            #             expressoes=[
-            #                 Sintoma(Manifestacao(name="Erupção Urticariforme"), RegiaoComposta(name="Pele")),
-            #                 Sintoma(Manifestacao(name="Vermelidão"), Orgao(name="Olho")),
-            #                 Sintoma(Manifestacao(name="Perda Auditiva"), Orgao(name="Ouvido"))
-            #             ]
+            #             2,
+            #             [dor_no_tronco, dor_no_abdome, coceira_no_olho]
             #         )
             #     )
             # )
 
+            # # Inventada
+            # diabetes_expr = And(
+            #     Resultado(name="Glicose > 126 mg/dL", exame=Exame(name="Glicemia de jejum", preco="R$50,00")),
+            #     AoMenos(
+            #         2,
+            #         [
+            #             Sintoma(Manifestacao(name="Sede")),
+            #             Sintoma(Manifestacao(name="Vontade de urinar varias vezes"))
+            #         ]
+            #     )
+            # )
+
+
             # Criando uma doença e um diagnóstico para a expressão
+            caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
+            diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=nlrp3_expr)
+
             fmf = Doenca(name="Familial Mediterranean Fever")
             diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
 
-            fmf2 = Doenca(name="Teste com FMF um pouco diferente")
-            diag = Diagnostico(sensibilidade=0.9, especificidade=0.84, acuracia=0.76, doenca=fmf2, expressao=fmf2_expr)
+            traps = Doenca(name="TNFRSF1A-Associated Periodic Syndrome")
+            diag = Diagnostico(sensibilidade=0.95, especificidade=0.99, acuracia=0.99, doenca=traps, expressao=tnfrsf1a_expr)
 
-            diabetes = Doenca(name="Diabetes")
-            diag = Diagnostico(doenca=diabetes, expressao=diabetes_expr)
+            mkd = Doenca(name="Mevalonate Kinase Deficiency")
+            diag = Diagnostico(sensibilidade=0.98, especificidade=1, acuracia=1, doenca=mkd, expressao=mvk_expr)
 
-            # caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
-            # diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=caps_expr)
+            # fmf2 = Doenca(name="Teste com FMF um pouco diferente")
+            # diag = Diagnostico(sensibilidade=0.9, especificidade=0.84, acuracia=0.76, doenca=fmf2, expressao=fmf2_expr)
+
+            # diabetes = Doenca(name="Diabetes")
+            # diag = Diagnostico(doenca=diabetes, expressao=diabetes_expr)
 
             # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
+            session.add(caps)
             session.add(fmf)
-            session.add(fmf2)
-            session.add(diabetes)
-            # session.add(caps)
+            session.add(traps)
+            session.add(mkd)
+            # session.add(fmf2)
+            # session.add(diabetes)
+
             session.commit()
 
 if __name__ == "__main__":

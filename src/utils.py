@@ -2,9 +2,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectin_polymorphic, subqueryload, selectinload
 from sqlalchemy import create_engine
 from db_config import DatabaseConfig
-from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao, FatosSintomaResultado
+from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao, FatosSintomaResultado, AvaliaNode
 import streamlit as st
 import pandas as pd
+from tribool import Tribool
 
 
 class StreamlitQueries():
@@ -61,7 +62,7 @@ class StreamlitQueries():
 
     # Função para buscar todos os sintomas do banco de dados
     def get_all_sintomas(self):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             statement = select(Sintoma).options(
                 joinedload(Sintoma.manifestacao),
                 joinedload(Sintoma.regiao_do_corpo)
@@ -72,7 +73,7 @@ class StreamlitQueries():
         
     # Função para buscar todos os resultados do banco de dados
     def get_all_resultados(self):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             statement = select(Resultado).options(
                 joinedload(Resultado.exame)
             )
@@ -82,14 +83,14 @@ class StreamlitQueries():
     
     # Função para buscar todas as doenças
     def get_all_doencas(self):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             doencas = session.query(Doenca).all()
             return doencas
         
 
     # Função para buscar todos os sintomas associados a uma doença
     def get_sintomas_by_doenca(self, target_doenca):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             target_doenca = session.get(Doenca, target_doenca.id)
 
             diagnosticos = session.query(Diagnostico).options(
@@ -113,7 +114,7 @@ class StreamlitQueries():
     
     # Função para buscar todos os resultados associados a uma doença
     def get_resultados_by_doenca(self, target_doenca):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             target_doenca = session.get(Doenca, target_doenca.id)
 
             diagnosticos = session.query(Diagnostico).options(
@@ -134,7 +135,7 @@ class StreamlitQueries():
 
     # Função para buscar todos os diagnósticos associados a um sintoma
     def get_diagnosticos_by_sintoma(self, sintoma):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             sintoma = session.get(Sintoma, sintoma.id)
 
             diagnosticos = session.query(Diagnostico).options(
@@ -152,7 +153,7 @@ class StreamlitQueries():
 
     # Função para buscar todos os diagnósitcos associados a um resultado
     def get_diagnosticos_by_resultado(self, resultado):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             resultado = session.get(Resultado, resultado.id)
 
             diagnosticos = session.query(Diagnostico).options(
@@ -170,7 +171,7 @@ class StreamlitQueries():
 
     # Função para buscar o diagnóstico de uma doença
     def get_diagnostico_by_doenca(self, doenca):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             doenca = session.get(Doenca, doenca.id)
 
             diagnosticos = session.query(Diagnostico).options(
@@ -187,7 +188,7 @@ class StreamlitQueries():
     
     # Função para buscar todas as possíveis doenças associadas a listas de sintomas presentes e ausentes
     def get_diagnosticos_by_list_of_sintomas_and_resultados(self, present_sintomas, not_present_sintomas, present_resultados, not_present_resultados):
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
             sintomas = self.get_all_sintomas()
             sintomas_presentes = [session.get(Sintoma, sintoma.id) for sintoma in present_sintomas]
             sintomas_ausentes = [session.get(Sintoma, sintoma.id) for sintoma in not_present_sintomas]
@@ -202,32 +203,29 @@ class StreamlitQueries():
             ).all()
             
             diagnosticos_filtrados = {}
+            avalia_dict = {}
 
             # TODO: Validar essa lógica novamente
             fatos = FatosSintomaResultado(sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes)
+            fatos.print_fatos()
             for diag in diagnosticos:
-                print(f"\nDoença: {diag.doenca.name}")
-                # Avalia checa se a expressão do diagnóstico é True a partir dos fatos (sintomas/resultados presentes e ausentes)
-                # Se o sintoma/resultado não estiver presente nem ausente, consideramos ele como "Possivel" e o avaliamos como True para que não seja descartado
-                if diag.expressao.avalia(fatos):
-                    # Até aqui basicamente só descartamos o que temos certeza que não faz parte do diagnóstico, então sobrou só as possibilidades dado os fatos
-                    # Para saber quais diagnósticos são de fato possíveis, vamos verificar se o dicionario de fatos tem um sintoma/resultado presente, então
-                    # a expressão do diagnóstico também deve conter esse sintoma/resultado (se é fato que um sintoma é 'Dor no Abdome', não faz sentido retornar
-                    # um diagnóstico que não contenha 'Dor no Abdome', como Diabetes por exemplo que só tem 'Sede' e 'Vontade de urinar várias vezes')
-                    expressao_contem_sintoma_resultado = all(diag.expressao.contem(sintoma) for sintoma in sintomas_presentes) and \
-                                                         all(diag.expressao.contem(resultado) for resultado in resultados_presentes)
-                    if expressao_contem_sintoma_resultado:
-                        # Agora temos os diagnósticos possíveis, mas não estão ainda fechados necessariamente (com todos os sintomas/resultados presentes 'marcados')
-                        # Para Familial Mediterranean Fever por exemplo pode estar retornando como possível, mas ainda não sabemos se é a doença correta
-                        diagnosticos_filtrados[diag] = diag.expressao
+                print(f"\n- Doenca: {diag.doenca.name}")
+                avalia_result, avalia_return = diag.expressao.avalia(fatos)
+                print(f"- Avalia Result: {avalia_result}")
+                avalia_return.print_tree()
 
-            return diagnosticos_filtrados
+                if avalia_result.value is not False:
+                    diagnosticos_filtrados[diag] = diag.expressao
+
+                avalia_dict[diag] = avalia_return
+
+            return diagnosticos_filtrados, avalia_dict
         
     
     # Função para buscar o sintoma mais comum entre todos os diagnósticos
     def get_most_common_sintoma(self, sintomas, present_sintomas, not_present_sintomas):
         max_ammount = 0
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
 
             if len(sintomas) == 0:
                 sintomas = self.get_all_sintomas()
@@ -253,7 +251,7 @@ class StreamlitQueries():
     # Função para buscar o resultado mais comum entre todos os diagnósticos
     def get_most_common_resultado(self, resultados, present_resultados, not_present_resultados):
         max_ammount = 0
-        with Session(self.engine) as session:
+        with Session(self.engine, expire_on_commit=False) as session:
 
             if len(resultados) == 0:
                 resultados = self.get_all_resultados()

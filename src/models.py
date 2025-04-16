@@ -1,6 +1,8 @@
 from typing import Optional
 from sqlalchemy import ForeignKey, String, Float, Integer, Table, Column
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from tribool import Tribool
+import streamlit as st
 
 
 class FatosSintomaResultado(): # Context
@@ -8,24 +10,49 @@ class FatosSintomaResultado(): # Context
         self.fatos = {}
         for sintoma in sintomas:
             if sintoma in sintomas_presentes:
-                self.fatos[sintoma] = True
+                self.fatos[sintoma] = Tribool(True)
             elif sintoma in sintomas_ausentes:
-                self.fatos[sintoma] = False
+                self.fatos[sintoma] = Tribool(False)
             else:
-                self.fatos[sintoma] = "Possivel"
+                self.fatos[sintoma] = Tribool(None)
         for resultado in resultados:
             if resultado in resultados_presentes:
-                self.fatos[resultado] = True
+                self.fatos[resultado] = Tribool(True)
             elif resultado in resultados_ausentes:
-                self.fatos[resultado] = False
+                self.fatos[resultado] = Tribool(False)
             else:
-                self.fatos[resultado] = "Possivel"
-        print(f"Fatos:")
-        for fato in self.fatos:
-            print(f"-> {fato} = {self.fatos[fato]}")
+                self.fatos[resultado] = Tribool(None)
     
     def __getitem__(self, fato):
-        return self.fatos.get(fato, True)
+        return self.fatos.get(fato)
+    
+    def print_fatos(self):
+        print(f"Fatos:")
+        for fato, valor in self.fatos.items():
+            print(f"-> {fato}: {valor}")
+
+
+class AvaliaNode():
+    def __init__(self):
+        self.expressao = None
+        self.result = None
+        self.children = []
+
+    def print_tree(self, level=0):
+        if level == 0:
+            print(f"{self.expressao} ({self.result})")
+        for child in self.children:
+            print(f"{' ' * 4 * level} {child.expressao} ({child.result})")
+            child.print_tree(level + 1)
+
+    def build_string(self, level=0):
+        if level == 0:
+            string = f"{self.expressao} ({self.result})"
+        else:
+            string = f"  \n{' ' * 4 * level} {self.expressao} ({self.result})"
+        for child in self.children:
+            string += child.build_string(level + 1)
+        return string
 
 
 # Classe base declarativa
@@ -53,7 +80,7 @@ class Expressao(Base):
         "polymorphic_on": "type",
     }
 
-    def avalia(self, fatos: FatosSintomaResultado, level=0): # Interpret
+    def avalia(self, fatos: FatosSintomaResultado): # Interpret
         raise NotImplementedError("Subclasses devem implementar este método")
 
     def contem(self, fato):
@@ -61,9 +88,6 @@ class Expressao(Base):
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id!r})"
-    
-    def printtree(self, level=0):
-        pass
 
 
 class And(Expressao):
@@ -85,22 +109,22 @@ class And(Expressao):
         self.left_expr = left
         self.right_expr = right
 
-    def avalia(self, fatos: FatosSintomaResultado, level=0):
-        result = self.left_expr.avalia(fatos, level+1) and self.right_expr.avalia(fatos, level+1)
-        print(f"{' ' * 4 * level}{result} : AND")
-        # print(f"-> {result} : {self}")
-        return result
+    def avalia(self, fatos: FatosSintomaResultado):
+        avalia_node = AvaliaNode()
+        left_result, left_tree = self.left_expr.avalia(fatos)
+        right_result, right_tree = self.right_expr.avalia(fatos)
+        result = Tribool(left_result) & Tribool(right_result)
+        avalia_node.expressao = self.__class__.__name__
+        avalia_node.result = result
+        avalia_node.children.append(left_tree)
+        avalia_node.children.append(right_tree)
+        return result, avalia_node
     
     def contem(self, fato):
         return self.left_expr.contem(fato) or self.right_expr.contem(fato)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
-    
-    def printtree(self, level=0):
-        print(f"{' ' * 4 * level}AND")
-        self.left_expr.printtree(level + 1)
-        self.right_expr.printtree(level + 1)
 
 
 class Or(Expressao):
@@ -122,22 +146,22 @@ class Or(Expressao):
         self.left_expr = left
         self.right_expr = right
 
-    def avalia(self, fatos: FatosSintomaResultado, level=0):
-        result = self.left_expr.avalia(fatos, level+1) or self.right_expr.avalia(fatos, level+1)
-        print(f"{' ' * 4 * level}{result} : OR")
-        # print(f"-> {result} : {self}")
-        return result
+    def avalia(self, fatos: FatosSintomaResultado):
+        avalia_node = AvaliaNode()
+        left_result, left_tree = self.left_expr.avalia(fatos)
+        right_result, right_tree = self.right_expr.avalia(fatos)
+        result = Tribool(left_result) | Tribool(right_result)
+        avalia_node.expressao = self.__class__.__name__
+        avalia_node.result = result
+        avalia_node.children.append(left_tree)
+        avalia_node.children.append(right_tree)
+        return result, avalia_node
     
     def contem(self, fato):
         return self.left_expr.contem(fato) or self.right_expr.contem(fato)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.left_expr!r}, {self.right_expr!r})"
-    
-    def printtree(self, level=0):
-        print(f"{' ' * level}OR")
-        self.left_expr.printtree(level + 1)
-        self.right_expr.printtree(level + 1)
 
 
 class AoMenos(Expressao):
@@ -155,29 +179,33 @@ class AoMenos(Expressao):
         self.qtd = qtd
         self.expressoes = expressoes
 
-    def avalia(self, fatos: FatosSintomaResultado, level=0):
+    def avalia(self, fatos: FatosSintomaResultado):
+        avalia_node = AvaliaNode()
+        avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
         count = self.qtd
+        count_false = 0
         for exp in self.expressoes:
-            if exp.avalia(fatos, level+1):
+            result, exp_avalia_node = exp.avalia(fatos)
+            avalia_node.children.append(exp_avalia_node)
+
+            if result is Tribool(True):
                 count -= 1
                 if count == 0:
-                    # print(f"-> True : {self}")
-                    print(f"{' ' * 4 * level}True : AoMenos({self.qtd})")
-                    return True
-        # print(f"-> False : {self}")
-        print(f"{' ' * 4 * level}False : AoMenos({self.qtd})")
-        return False
+                    avalia_node.result = result
+                    return result, avalia_node
+            if result is Tribool(False):
+                count_false += 1
+                if len(self.expressoes) - count_false < self.qtd:
+                    avalia_node.result = result
+                    return result, avalia_node
+
+        return Tribool(None), avalia_node
     
     def contem(self, fato):
         return any(expr.contem(fato) for expr in self.expressoes)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.qtd!r})({self.expressoes!r})"
-    
-    def printtree(self, level=0):
-        print(f"{' ' * 4 * level}AoMenos({self.qtd})")
-        for expr in self.expressoes:
-            expr.printtree(level + 1)
 
 
 regioes_da_parte = Table(
@@ -261,13 +289,17 @@ class Sintoma(Expressao):
         self.manifestacao = manifestacao
         self.regiao_do_corpo = regiao_do_corpo
 
-    def avalia(self, fatos, level=0):
-        if (fatos[self] == "Possivel"):
-            print(f"{' ' * 4 * level}True : {self}")
-            return True
-        else:
-            print(f"{' ' * 4 * level}{fatos[self]} : {self}")
-            return fatos[self]
+    def avalia(self, fatos):
+        avalia_node = AvaliaNode()
+        avalia_node.expressao = self
+        result = fatos[self]
+        avalia_node.result = result
+        return result, avalia_node
+
+    # def avalia(self, fatos, level=0):
+    #     result = fatos[self]
+    #     tree = f"{' ' * 4 * level}{self} ({result})"
+    #     return result, tree
         
     def contem(self, fato):
         return self == fato
@@ -285,9 +317,6 @@ class Sintoma(Expressao):
             return f"{self.manifestacao} no(a) {self.regiao_do_corpo}"
         else:
             return f"{self.manifestacao}"
-    
-    def printtree(self, level=0):
-        print(f"{' ' * 4 * level}{self.__class__.__name__}({self.manifestacao})({self.regiao_do_corpo})")
 
 
 class Exame(Base):
@@ -318,13 +347,17 @@ class Resultado(Expressao):
         self.name = name
         self.exame = exame
 
-    def avalia(self, fatos, level=0):
-        if (fatos[self] == "Possivel"):
-            print(f"{' ' * 4 * level}True : {self}")
-            return True
-        else:
-            print(f"{' ' * 4 * level}{fatos[self]} : {self}")
-            return fatos[self]
+    def avalia(self, fatos):
+        avalia_node = AvaliaNode()
+        avalia_node.expressao = self
+        result = fatos[self]
+        avalia_node.result = result
+        return result, avalia_node
+
+    # def avalia(self, fatos, level=0):
+    #     result = fatos[self]
+    #     tree = f"{' ' * 4 * level}{self} ({result})"
+    #     return result, tree
         
     def contem(self, fato):
         return self == fato
@@ -339,9 +372,6 @@ class Resultado(Expressao):
 
     def __repr__(self):
         return f"{self.name}"
-    
-    def printtree(self, level=0):
-        print(f"{' ' * 4 * level}{self.__class__.__name__}({self.name})")
 
 
 class Doenca(Base):

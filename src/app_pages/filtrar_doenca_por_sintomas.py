@@ -58,7 +58,7 @@ with col2:
 
 
 # Listar as doenças associadas ao sintoma
-diagnosticos = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
+diagnosticos, _ = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
 doencas = [diagnostico.doenca for diagnostico in diagnosticos]
 st.write("Possiveis Doencas:", doencas)
 

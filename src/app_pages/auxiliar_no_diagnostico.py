@@ -55,38 +55,35 @@ with col2:
 	)
 
 diagnosticos, diag_avaliacoes = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
-possiveis_doencas = [diagnostico.doenca for diagnostico in diagnosticos]
+possiveis_doencas = [doenca for doenca in diagnosticos.keys()]
 
-with col2:
-	for diagnostico in diagnosticos:
-		possivel_doenca = diagnostico.doenca
-		avalia_string = diag_avaliacoes[diagnostico].build_string()
-		st.text("Doença: " + possivel_doenca.name + "  \nAvaliação:  \n" + avalia_string)
-
-		if diag_avaliacoes[diagnostico].result.value == True:
-			with col1:
-				st.success(possivel_doenca.name + " deu match com os sintomas e resultados selecionados.")
+possiveis_doencas_avaliacoes = {}
+for doenca in diagnosticos: # usa diagnosticos para filtrar as doencas que foram false
+	possiveis_doencas_avaliacoes[doenca.name] = diag_avaliacoes[doenca].build_string()
 
 with col1:
 	sintomas_of_possiveis_doencas = []
+	resultados_of_possiveis_doencas = []
 	for doenca in possiveis_doencas:
 		for sintoma in sq.get_sintomas_by_doenca(doenca):
 			if sintoma not in sintomas_of_possiveis_doencas and sintoma not in not_present_sintomas:
 				sintomas_of_possiveis_doencas.append(sintoma)
 
-	resultados_of_possiveis_doencas = []
-	for doenca in possiveis_doencas:
 		for resultado in sq.get_resultados_by_doenca(doenca):
 			if resultado not in resultados_of_possiveis_doencas and resultado not in not_present_resultados:
 				resultados_of_possiveis_doencas.append(resultado)
 
+		if diag_avaliacoes[doenca].result.value == True:
+			st.success(doenca.name + " deu match com os sintomas e resultados selecionados.")
 
+	st.write("Possíveis Doenças:", possiveis_doencas_avaliacoes)
+
+
+with col2:
 	most_common_sintoma = sq.get_most_common_sintoma(sintomas_of_possiveis_doencas, present_sintomas, not_present_sintomas)
 	st.write("Sintoma mais comum:", most_common_sintoma)
 
 	most_common_resultado = sq.get_most_common_resultado(resultados_of_possiveis_doencas, present_resultados, not_present_resultados)
 	st.write("Resultado mais comum:", most_common_resultado)
-
-	st.write("Possíveis Doenças:", possiveis_doencas)
-
+	
 	sq.st_write_sintoma_doencas_table()

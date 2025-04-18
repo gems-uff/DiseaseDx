@@ -215,9 +215,9 @@ class StreamlitQueries():
                 avalia_return.print_tree()
 
                 if avalia_result.value is not False:
-                    diagnosticos_filtrados[diag] = diag.expressao
+                    diagnosticos_filtrados[diag.doenca] = diag.expressao
 
-                avalia_dict[diag] = avalia_return
+                avalia_dict[diag.doenca] = avalia_return
 
             return diagnosticos_filtrados, avalia_dict
         

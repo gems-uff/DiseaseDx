@@ -2,7 +2,7 @@ import streamlit as st
 from utils import StreamlitQueries
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_icon="📝")
 st.title("Listar Doencas de um Sintoma")
 
 

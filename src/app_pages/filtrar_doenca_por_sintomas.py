@@ -3,7 +3,7 @@ from utils import StreamlitQueries
 from models import Sintoma
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_icon="🔬")
 st.title("Filtrar Doencas por Sintomas")
 
 
@@ -59,7 +59,7 @@ with col2:
 
 # Listar as doenças associadas ao sintoma
 diagnosticos, _ = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
-doencas = [diagnostico.doenca for diagnostico in diagnosticos]
+doencas = [doenca for doenca in diagnosticos]
 st.write("Possiveis Doencas:", doencas)
 
 

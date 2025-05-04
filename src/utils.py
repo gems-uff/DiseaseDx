@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session, joinedload, selectin_polymorphic, subqueryload, selectinload
 from sqlalchemy import create_engine
 from db_config import DatabaseConfig
-from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao, FatosSintomaResultado, AvaliaNode
+from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao, FatosSintomaResultado, AvaliaNode, Flyweight, FlyweightFactory
 import streamlit as st
 import pandas as pd
 from tribool import Tribool
@@ -60,6 +60,38 @@ class StreamlitQueries():
         return list(resultados)
     
 
+    # Função para buscar todas as manifestações do banco de dados
+    def get_all_manifestacoes(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            statement = select(Manifestacao)
+            manifestacoes = session.scalars(statement).unique().all()
+            return manifestacoes
+    
+
+    # Função para buscar todas as regiões compostas do banco de dados
+    def get_all_regioes_compostas(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            statement = select(RegiaoComposta)
+            regioes_compostas = session.scalars(statement).unique().all()
+            return regioes_compostas
+        
+    
+    # Função para buscar todos os órgãos do banco de dados
+    def get_all_orgaos(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            statement = select(Orgao)
+            orgaos = session.scalars(statement).unique().all()
+            return orgaos
+        
+    
+    # Função para buscar todos os exames do banco de dados
+    def get_all_exames(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            statement = select(Exame)
+            exames = session.scalars(statement).unique().all()
+            return exames
+
+
     # Função para buscar todos os sintomas do banco de dados
     def get_all_sintomas(self):
         with Session(self.engine, expire_on_commit=False) as session:
@@ -86,6 +118,15 @@ class StreamlitQueries():
         with Session(self.engine, expire_on_commit=False) as session:
             doencas = session.query(Doenca).all()
             return doencas
+        
+    
+    # Função para buscar todas as expressões do banco de dados
+    def get_all_expressions(self):
+        with Session(self.engine, expire_on_commit=False) as session:
+            statement = select(Expressao)
+            expressao = session.scalars(statement).unique().all()
+            print(f"Expressao: {expressao}") # TODO: Ajeitar o loading para evitar DetachedInstanceError
+            return expressao
         
 
     # Função para buscar todos os sintomas associados a uma doença
@@ -212,7 +253,7 @@ class StreamlitQueries():
                 print(f"\n- Doenca: {diag.doenca.name}")
                 avalia_result, avalia_return = diag.expressao.avalia(fatos)
                 print(f"- Avalia Result: {avalia_result}")
-                avalia_return.print_tree()
+                avalia_return.print_tree() # TODO: Ajeitar o loading para evitar DetachedInstanceError
 
                 if avalia_result.value is not False:
                     diagnosticos_filtrados[diag.doenca] = diag.expressao
@@ -274,6 +315,51 @@ class StreamlitQueries():
 
 
 
+
+
+
+
+
+
+
+    # Função para adicionar uma nova manifestação ao banco de dados
+    def add_manifestacao(self, manifestacao):
+        with Session(self.engine, expire_on_commit=False) as session:
+            session.add(manifestacao)
+            session.commit()
+            return manifestacao
+
+
+    # Função para adicionar um novo órgão ao banco de dados
+    def add_orgao(self, orgao):
+        with Session(self.engine, expire_on_commit=False) as session:
+            session.add(orgao)
+            session.commit()
+            return orgao
+        
+
+    # Função para adicionar uma nova região composta ao banco de dados
+    def add_regiao_composta(self, regiao_composta):
+        with Session(self.engine, expire_on_commit=False) as session:
+            session.add(regiao_composta)
+            session.commit()
+            return regiao_composta
+        
+    
+    # Função para adicionar um novo sintoma ao banco de dados
+    def add_sintoma(self, sintoma):
+        with Session(self.engine, expire_on_commit=False) as session:
+            session.add(sintoma)
+            session.commit()
+            return sintoma
+
+
+
+
+
+
+
+
     # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
     def st_write_sintoma_doencas_table(self):
         df = pd.DataFrame(columns=["Sintoma", "Doenças", "Count"])
@@ -293,7 +379,24 @@ class StreamlitQueries():
                     "Doenças": doencas_names,
                     "Count": len(doencas_names)
                 }])], ignore_index=True)
-        st.dataframe(df)
+        df_sorted = df.sort_values(by="Count", ascending=False)
+        st.dataframe(df_sorted)
+
+
+    # Criar um dataframe para exibir as informações de todos as doenças associadas a cada resultado
+    def st_write_resultado_doencas_table(self):
+        df = pd.DataFrame(columns=["Resultado", "Doenças", "Count"])
+        resultados = self.get_all_resultados()
+        for resultado in resultados:
+            diagnosticos = self.get_diagnosticos_by_resultado(resultado)
+            doencas_names = sorted([diagnostico.doenca.name for diagnostico in diagnosticos])
+            df = pd.concat([df, pd.DataFrame([{
+                "Resultado": f"{resultado.name}",
+                "Doenças": doencas_names,
+                "Count": len(doencas_names)
+            }])], ignore_index=True)
+        df_sorted = df.sort_values(by="Count", ascending=False)
+        st.dataframe(df_sorted)
 
 
     # Criar um dataframe para exibir todos os sintomas de uma doença

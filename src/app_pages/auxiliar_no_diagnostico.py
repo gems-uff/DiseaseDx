@@ -3,7 +3,7 @@ from utils import StreamlitQueries
 from models import Sintoma
 
 
-st.set_page_config(layout="wide")
+st.set_page_config(layout="wide", page_icon="🩺")
 st.title("Auxiliar no Diagnostico")
 
 
@@ -58,12 +58,15 @@ diagnosticos, diag_avaliacoes = sq.get_diagnosticos_by_list_of_sintomas_and_resu
 possiveis_doencas = [doenca for doenca in diagnosticos.keys()]
 
 possiveis_doencas_avaliacoes = {}
+possiveis_doencas_avaliacoes_html = {}
+
 for doenca in diagnosticos: # usa diagnosticos para filtrar as doencas que foram false
 	possiveis_doencas_avaliacoes[doenca.name] = diag_avaliacoes[doenca].build_string()
 
 with col1:
 	sintomas_of_possiveis_doencas = []
 	resultados_of_possiveis_doencas = []
+	st.write("Possiveis Doenças:")
 	for doenca in possiveis_doencas:
 		for sintoma in sq.get_sintomas_by_doenca(doenca):
 			if sintoma not in sintomas_of_possiveis_doencas and sintoma not in not_present_sintomas:
@@ -76,7 +79,10 @@ with col1:
 		if diag_avaliacoes[doenca].result.value == True:
 			st.success(doenca.name + " deu match com os sintomas e resultados selecionados.")
 
-	st.write("Possíveis Doenças:", possiveis_doencas_avaliacoes)
+		st.write(f":blue[{doenca.name}:]")
+		st.html(possiveis_doencas_avaliacoes[doenca.name])
+
+	# st.write("Possíveis Doenças:", possiveis_doencas_avaliacoes)
 
 
 with col2:
@@ -87,3 +93,4 @@ with col2:
 	st.write("Resultado mais comum:", most_common_resultado)
 	
 	sq.st_write_sintoma_doencas_table()
+	sq.st_write_resultado_doencas_table()

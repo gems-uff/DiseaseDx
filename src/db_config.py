@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy.orm import Session
-from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico
+from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico, Flyweight, FlyweightFactory
 
 
 class DatabaseConfig:
@@ -79,7 +79,7 @@ class DatabaseConfig:
 
 
             # Criando os objetos de Sintoma
-            febre = Sintoma(feb) # Criei so pra ter um sintoma comum em todos e testar o sintoma comum
+            febre = Sintoma(feb)
             dor_no_tronco = Sintoma(dor, tronco)
             dor_no_abdome = Sintoma(dor, abdome)
             artrite_no_ombro = Sintoma(artrite, ombro)
@@ -139,14 +139,14 @@ class DatabaseConfig:
                     variante_mefv_patogenica,
                     AoMenos(
                         1,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
+                        [febre, dor_no_peito, dor_no_abdome, artrite_no_corpo]
                     )
                 ),
                 And(
                     vus_de_mefv,
                     AoMenos(
                         2,
-                        [dor_no_tronco, dor_no_abdome, artrite_no_ombro]
+                        [febre, dor_no_peito, dor_no_abdome, artrite_no_corpo]
                     )
                 )
             )
@@ -176,33 +176,6 @@ class DatabaseConfig:
                 )
             )
 
-            # # Inventada
-            # fmf2_expr = Or( # Posso trocar pra And pra validar
-            #     And(
-            #         variante_mefv_patogenica,
-            #         coceira_na_mao
-            #     ),
-            #     And(
-            #         vus_de_mefv,
-            #         AoMenos(
-            #             2,
-            #             [dor_no_tronco, dor_no_abdome, coceira_no_olho]
-            #         )
-            #     )
-            # )
-
-            # # Inventada
-            # diabetes_expr = And(
-            #     Resultado(name="Glicose > 126 mg/dL", exame=Exame(name="Glicemia de jejum", preco="R$50,00")),
-            #     AoMenos(
-            #         2,
-            #         [
-            #             Sintoma(Manifestacao(name="Sede")),
-            #             Sintoma(Manifestacao(name="Vontade de urinar varias vezes"))
-            #         ]
-            #     )
-            # )
-
 
             # Criando uma doença e um diagnóstico para a expressão
             caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
@@ -217,19 +190,34 @@ class DatabaseConfig:
             mkd = Doenca(name="Mevalonate Kinase Deficiency")
             diag = Diagnostico(sensibilidade=0.98, especificidade=1, acuracia=1, doenca=mkd, expressao=mvk_expr)
 
-            # fmf2 = Doenca(name="Teste com FMF um pouco diferente")
-            # diag = Diagnostico(sensibilidade=0.9, especificidade=0.84, acuracia=0.76, doenca=fmf2, expressao=fmf2_expr)
-
-            # diabetes = Doenca(name="Diabetes")
-            # diag = Diagnostico(doenca=diabetes, expressao=diabetes_expr)
-
             # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
             session.add(caps)
             session.add(fmf)
             session.add(traps)
             session.add(mkd)
-            # session.add(fmf2)
-            # session.add(diabetes)
+
+            
+            # Fake expressions for testing
+            exame_fake1 = Exame(name="Fake Exame 1", preco="R$1000,00")
+            sintoma_fake1 = Sintoma(ulcera, audicao)
+            sintoma_fake2 = Sintoma(feb, olho)
+            sintoma_fake3 = Sintoma(coceira, gastrointestinal)
+            present_resultado_fake = Resultado(name="Present Fake Result", exame=exame_fake1)
+            vus_resultado_fake = Resultado(name="VUS Fake Result", exame=exame_fake1)
+            fake_1 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])))
+            fake_2 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake3])))
+            fake_3 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])))
+            fake1disease = Doenca(name="Fake Disease 1")
+            fake1diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake1disease, expressao=fake_1)
+            fake2disease = Doenca(name="Fake Disease 2")
+            fake2diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake2disease, expressao=fake_2)
+            fake3disease = Doenca(name="Fake Disease 3")
+            fake3diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake3disease, expressao=fake_3)
+            session.add(fake1disease)
+            session.add(fake2disease)
+            session.add(fake3disease)
+            # End Fake expressions for testing
+
 
             session.commit()
 

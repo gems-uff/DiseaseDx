@@ -7,67 +7,6 @@ import json
 from typing import Dict
 
 
-class Flyweight:
-    """
-    The Flyweight stores a common portion of the state (also called intrinsic
-    state) that belongs to multiple real business entities. The Flyweight
-    accepts the rest of the state (extrinsic state, unique for each entity) via
-    its method parameters.
-    """
-    def __init__(self, shared_state: str) -> None:
-        self._shared_state = shared_state
-    
-    def operation(self, unique_state: str) -> None:
-        s = json.dumps(self._shared_state)
-        u = json.dumps(unique_state)
-        print(f"Flyweight: Displaying shared ({s}) and unique ({u}) state.", end="")
-
-
-class FlyweightFactory():
-    """
-    The Flyweight Factory creates and manages the Flyweight objects. It ensures
-    that flyweights are shared correctly. When the client requests a flyweight,
-    the factory either returns an existing instance or creates a new one, if it
-    doesn't exist yet.
-    """
-
-    _flyweights: Dict[str, Flyweight] = {}
-
-    def __init__(self, db_engine, initial_flyweights: Dict) -> None:
-        for state in initial_flyweights:
-            self._flyweights[self.get_key(state)] = Flyweight(state)
-            self.engine = db_engine
-
-    def get_key(self, state: Dict) -> str:
-        """
-        Returns a Flyweight's string hash for a given state.
-        """
-
-        return "_".join(sorted(state))
-
-    def get_flyweight(self, shared_state: Dict) -> Flyweight:
-        """
-        Returns an existing Flyweight with a given state or creates a new one.
-        """
-
-        key = self.get_key(shared_state)
-
-        if not self._flyweights.get(key):
-            print("FlyweightFactory: Can't find a flyweight, creating new one.")
-            self._flyweights[key] = Flyweight(shared_state)
-            with Session(self.engine, expire_on_commit=False) as session:
-                session.add(self._flyweights[key])
-                session.commit()
-        else:
-            print("FlyweightFactory: Reusing existing flyweight.")
-
-        return self._flyweights[key]
-
-    def list_flyweights(self) -> None:
-        count = len(self._flyweights)
-        print(f"FlyweightFactory: I have {count} flyweights:")
-        print("\n".join(map(str, self._flyweights.keys())), end="")
-
 
 class FatosSintomaResultado(): # Context
     def __init__(self, sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes):
@@ -171,11 +110,6 @@ class Expressao(Base):
 
     def contem(self, fato):
         raise NotImplementedError("Subclasses devem implementar este método")
-    
-    def add_to_db(self, factory: FlyweightFactory, extrinsic_state: Dict, intrinsic_state: Dict) -> None:
-        print(f"\n\n----- Adding {self.__class__.__name__} to DB")
-        flyweight = factory.get_flyweight(intrinsic_state)
-        flyweight.operation(extrinsic_state)
 
     def __repr__(self):
         return f"{self.__class__.__name__}({self.id!r})"

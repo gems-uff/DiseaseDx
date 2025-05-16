@@ -4,7 +4,7 @@ from sqlalchemy import create_engine
 from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy.orm import Session
-from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico, Flyweight, FlyweightFactory
+from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico
 
 
 class DatabaseConfig:

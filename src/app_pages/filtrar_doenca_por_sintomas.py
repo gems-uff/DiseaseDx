@@ -64,4 +64,5 @@ st.write("Possiveis Doencas:", doencas)
 
 
 # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
-sq.st_write_doenca_sintomas_resultados_table()
+df_doenca_sintomas_resultados = sq.st_write_doenca_sintomas_resultados_table()
+st.dataframe(df_doenca_sintomas_resultados)

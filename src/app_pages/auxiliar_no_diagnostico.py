@@ -54,6 +54,7 @@ with col2:
 		placeholder="Selecione os resultados ausentes"
 	)
 
+
 diagnosticos, diag_avaliacoes = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
 possiveis_doencas = [doenca for doenca in diagnosticos.keys()]
 
@@ -63,10 +64,15 @@ possiveis_doencas_avaliacoes_html = {}
 for doenca in diagnosticos: # usa diagnosticos para filtrar as doencas que foram false
 	possiveis_doencas_avaliacoes[doenca.name] = diag_avaliacoes[doenca].build_string()
 
-with col1:
+if 'clicked' not in st.session_state:
+    st.session_state.clicked = False
+
+def click_button():
+    st.session_state.clicked = not st.session_state.clicked
+
+with col2:
 	sintomas_of_possiveis_doencas = []
 	resultados_of_possiveis_doencas = []
-	st.write("Possiveis Doenças:")
 	for doenca in possiveis_doencas:
 		for sintoma in sq.get_sintomas_by_doenca(doenca):
 			if sintoma not in sintomas_of_possiveis_doencas and sintoma not in not_present_sintomas:
@@ -79,18 +85,25 @@ with col1:
 		if diag_avaliacoes[doenca].result.value == True:
 			st.success(doenca.name + " deu match com os sintomas e resultados selecionados.")
 
-		st.write(f":blue[{doenca.name}:]")
-		st.html(possiveis_doencas_avaliacoes[doenca.name])
 
-	# st.write("Possíveis Doenças:", possiveis_doencas_avaliacoes)
+	if st.session_state.clicked:
+		st.button(f"Ocultar Árvores de Avaliação", on_click=click_button, key="exibir_arvore")
+		st.write("Possiveis Doenças:")
+		for doenca in possiveis_doencas:
+			st.write(f":blue[{doenca.name}:]")
+			st.html(possiveis_doencas_avaliacoes[doenca.name])
+	else:
+		st.button(f"Exibir Árvores de Avaliação", on_click=click_button, key="exibir_arvore")
 
 
-with col2:
+with col1:
 	most_common_sintoma = sq.get_most_common_sintoma(sintomas_of_possiveis_doencas, present_sintomas, not_present_sintomas)
 	st.write("Sintoma mais comum:", most_common_sintoma)
 
 	most_common_resultado = sq.get_most_common_resultado(resultados_of_possiveis_doencas, present_resultados, not_present_resultados)
 	st.write("Resultado mais comum:", most_common_resultado)
 	
-	sq.st_write_sintoma_doencas_table()
-	sq.st_write_resultado_doencas_table()
+	df_sintoma_doencas = sq.st_write_sintoma_doencas_table()
+	st.dataframe(df_sintoma_doencas)
+	df_resultado_doencas = sq.st_write_resultado_doencas_table()
+	st.dataframe(df_resultado_doencas)

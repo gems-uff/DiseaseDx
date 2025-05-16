@@ -16,4 +16,5 @@ st.write("Lista de todos os Sintomas:", sintomas)
 
 # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
 st.write("Tabela de Doenças com Sintoma em comum:")
-sq.st_write_sintoma_doencas_table()
+df_sintoma_doencas = sq.st_write_sintoma_doencas_table()
+st.dataframe(df_sintoma_doencas)

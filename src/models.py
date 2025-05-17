@@ -40,6 +40,7 @@ class AvaliaNode():
         self.expressao = None
         self.result = None
         self.children = []
+        self.instance = None
 
     def print_tree(self, level=0):
         if level == 0:
@@ -57,7 +58,7 @@ class AvaliaNode():
     #         string += child.build_string(level + 1)
     #     return string
 
-    def build_string(self, level=0):
+    def build_html_string(self, level=0):
         if level == 0:
             if self.result is Tribool(True):
                 string = f"<span style='background-color:green;'>{self.expressao} ({self.result})</span>"
@@ -74,7 +75,7 @@ class AvaliaNode():
             else:
                 string = f"<br>{indent}{self.expressao} ({self.result})"
         for child in self.children:
-            string += child.build_string(level + 1)
+            string += child.build_html_string(level + 1)
         return string
     
 
@@ -141,6 +142,7 @@ class And(Expressao):
         result = Tribool(left_result) & Tribool(right_result)
         avalia_node.expressao = self.__class__.__name__
         avalia_node.result = result
+        avalia_node.instance = self
         avalia_node.children.append(left_tree)
         avalia_node.children.append(right_tree)
         return result, avalia_node
@@ -178,6 +180,7 @@ class Or(Expressao):
         result = Tribool(left_result) | Tribool(right_result)
         avalia_node.expressao = self.__class__.__name__
         avalia_node.result = result
+        avalia_node.instance = self
         avalia_node.children.append(left_tree)
         avalia_node.children.append(right_tree)
         return result, avalia_node
@@ -206,6 +209,7 @@ class AoMenos(Expressao):
 
     def avalia(self, fatos: FatosSintomaResultado):
         avalia_node = AvaliaNode()
+        avalia_node.instance = self
         avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
         count = self.qtd
         count_false = 0
@@ -316,6 +320,7 @@ class Sintoma(Expressao):
 
     def avalia(self, fatos):
         avalia_node = AvaliaNode()
+        avalia_node.instance = self
         avalia_node.expressao = self
         result = fatos[self]
         avalia_node.result = result
@@ -374,6 +379,7 @@ class Resultado(Expressao):
 
     def avalia(self, fatos):
         avalia_node = AvaliaNode()
+        avalia_node.instance = self
         avalia_node.expressao = self
         result = fatos[self]
         avalia_node.result = result

@@ -253,6 +253,24 @@ class StreamlitQueries():
             return diag
         
     
+    # Função para calcular o score de um nó
+    def get_score(_self, node: AvaliaNode):
+        if isinstance(node.instance, (Sintoma, Resultado)):
+            if node.result is Tribool(True):
+                score = 1
+            elif node.result is Tribool(False):
+                score = -0.5
+            else:
+                score = 0
+        else:
+            score = 0
+
+        for child in node.children:
+            score += _self.get_score(child)
+
+        return score
+
+
     # Função para buscar todas as possíveis doenças associadas a listas de sintomas presentes e ausentes
     @st.cache_data(hash_funcs={Sintoma: lambda sintoma: sintoma.id, Resultado: lambda resultado: resultado.id})
     def get_diagnosticos_by_list_of_sintomas_and_resultados(_self, present_sintomas, not_present_sintomas, present_resultados, not_present_resultados):
@@ -270,7 +288,6 @@ class StreamlitQueries():
                 joinedload(Diagnostico.expressao)
             ).all()
             
-            diagnosticos_filtrados = {}
             avalia_dict = {}
 
             # TODO: Validar essa lógica novamente
@@ -282,12 +299,11 @@ class StreamlitQueries():
                 print(f"- Avalia Result: {avalia_result}")
                 avalia_return.print_tree() # TODO: Ajeitar o loading para evitar DetachedInstanceError
 
-                if avalia_result.value is not False:
-                    diagnosticos_filtrados[diag.doenca] = diag.expressao
+                diag_score = _self.get_score(avalia_return)
 
-                avalia_dict[diag.doenca] = avalia_return
+                avalia_dict[diag.doenca] = (avalia_return, diag_score)
 
-            return diagnosticos_filtrados, avalia_dict
+            return avalia_dict
         
     
     # Função para buscar o sintoma mais comum entre todos os diagnósticos

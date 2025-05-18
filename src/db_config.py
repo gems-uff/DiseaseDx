@@ -1,43 +1,64 @@
 import os
 import streamlit as st
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, Engine
 from urllib.parse import quote_plus
 from sqlalchemy_utils import database_exists, create_database, drop_database
 from sqlalchemy.orm import Session
 from models import Base, Manifestacao, Orgao, RegiaoComposta, Sintoma, Exame, Resultado, Or, And, AoMenos, Doenca, Diagnostico
 
 
+
+
 class DatabaseConfig:
-    def __init__(self):
-        self.username = os.getenv('MYSQL_USER')
-        self.password = quote_plus(os.getenv('MYSQL_PASS'))
-        self.server = "localhost"
-        self.port = "3306"
-        self.dbname = "diseasedx_test"
-        self.connection_string = f"mysql+mysqlconnector://{self.username}:{self.password}@{self.server}:{self.port}/{self.dbname}"
-        # self.connection_string = "sqlite:///mylocaldb.db" # python src/db_config.py to first create the database
-        self.engine = create_engine(self.connection_string, echo=False)
-
-
+    """
+    This class is responsible for creating the engine for database connection and initializing the database.
+    Run the script with python src/db_config.py to create the database.
+    """
     @st.cache_resource
-    def load_engine(_self):
-        return _self.engine
+    def load_engine(_self) -> Engine:
+        """
+        Returns the engine for the database connection. The st.cache_resource decorator is used to cache the engine so that it's not recreated every time.
+        It's possible to use a SQLite database for local development, just switch the self.connection_string to "sqlite:///mylocaldb.db".
+        """
+        username = os.getenv('MYSQL_USER')
+        password = quote_plus(os.getenv('MYSQL_PASS'))
+        server = "localhost"
+        port = "3306"
+        dbname = "diseasedx_test"
+        connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
+        engine = create_engine(connection_string, echo=False)
+        return engine
     
 
-    def init_db(self):
-        if database_exists(self.engine.url):
+
+
+    def init_db(self) -> None:
+        """
+        Initializes the database by creating it if it doesn't exist and creating the tables.
+        """
+        engine = self.load_engine()
+        if database_exists(engine.url):
             print(f"Database {self.dbname} already exists. Dropping it...")
-            drop_database(self.engine.url)
-        create_database(self.engine.url)
+            drop_database(engine.url)
+
+        create_database(engine.url)
         print(f"Database {self.dbname} created successfully.")
-        Base.metadata.create_all(self.engine)
+
+        Base.metadata.create_all(engine)
         print("Tables created successfully.")
+
         self.populate_with_examples()
         print("Populated database with example data.")
         
 
-    def populate_with_examples(self):
-        with Session(self.engine, expire_on_commit=False) as session:
+
+
+    def populate_with_examples(self) -> None:
+        """
+        Populates the database with example data from hardcoded objects below.
+        """
+        engine = self.load_engine()
+        with Session(engine, expire_on_commit=False) as session:
 
             # Criando os objetos de Manifestacao
             dor = Manifestacao(name="Dor")
@@ -52,8 +73,7 @@ class DatabaseConfig:
             ulcera = Manifestacao(name="Úlcera")
             coceira_mig = Manifestacao(name="Coceira Migratória")
 
-
-            #Criando os objetos de Orgao
+            # Criando os objetos de Orgao
             ombro = Orgao(name="Ombro")
             pulmao = Orgao(name="Pulmão")
             estomago = Orgao(name="Estômago")
@@ -61,7 +81,6 @@ class DatabaseConfig:
             ouvido = Orgao(name="Ouvido")
             osso = Orgao(name="Osso")
             boca = Orgao(name="Boca")
-
 
             # Criando os objetos de RegiaoComposta
             abdome = RegiaoComposta(name="Abdome", regioes=[estomago])
@@ -76,7 +95,6 @@ class DatabaseConfig:
             pescoco = RegiaoComposta(name="Pescoço")
             cervical = RegiaoComposta(name="Cervical", regioes=[pescoco])
             corpo = RegiaoComposta(name="Corpo")
-
 
             # Criando os objetos de Sintoma
             febre = Sintoma(feb)
@@ -97,7 +115,6 @@ class DatabaseConfig:
             inchaco_cervical = Sintoma(inchaco, cervical)
             ulcera_na_boca = Sintoma(ulcera, boca)
 
-
             # Criando os objetos de Exame e Resultado
             exame_nlrp3 = Exame(name="NLRP3", preco="R$3500,00")
             variante_nlrp3_patogenica = Resultado(name="Variante NLRP3 patogênica", exame=exame_nlrp3)
@@ -114,7 +131,6 @@ class DatabaseConfig:
             exame_mvk = Exame(name="MVK", preco="R$3200,00")
             variante_mvk_patogenica = Resultado(name="Variante MVK patogênica", exame=exame_mvk)
             vus_de_mvk = Resultado(name="VUS de MVK", exame=exame_mvk)
-
 
             # Criando os ojetos das Expressões
             nlrp3_expr = Or(
@@ -196,7 +212,6 @@ class DatabaseConfig:
             session.add(traps)
             session.add(mkd)
 
-            
             # Fake expressions for testing
             exame_fake1 = Exame(name="Fake Exame 1", preco="R$1000,00")
             sintoma_fake1 = Sintoma(ulcera, audicao)
@@ -218,8 +233,14 @@ class DatabaseConfig:
             session.add(fake3disease)
             # End Fake expressions for testing
 
-
             session.commit()
+
+
+
+
+
+
+
 
 if __name__ == "__main__":
     db_config = DatabaseConfig()

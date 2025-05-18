@@ -7,7 +7,7 @@ st.set_page_config(layout="wide", page_icon="🩺")
 st.title("Auxiliar no Diagnostico")
 
 
-def format_func(item):
+def format_func(item) -> str:
     if isinstance(item, Sintoma):
         return f"{item.manifestacao.name} no(a) {item.regiao_do_corpo.name}" if item.regiao_do_corpo else f"{item.manifestacao.name}"
     else:
@@ -25,6 +25,7 @@ col1, col2 = st.columns(2)
 
 
 with col1:
+
 	present_sintomas = st.multiselect(
 		"Selecione os sintomas presentes", 
 		sintomas,
@@ -38,8 +39,10 @@ with col1:
 		format_func=lambda resultado: format_func(resultado),
 		placeholder="Selecione os resultados presentes"
 	)
+
      
 with col2:
+
 	not_present_sintomas = st.multiselect(
 		"Selecione os sintomas ausentes", 
 		sintomas,
@@ -55,16 +58,19 @@ with col2:
 	)
 
 
-diagnosticos_avaliacoes = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
+diagnosticos_avaliacoes = sq.get_diagnosticos_avaliacoes_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
 
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False
 
-def click_button():
+
+def click_button() -> None:
     st.session_state.clicked = not st.session_state.clicked
 
+
 with col2:
+
 	for doenca in diagnosticos_avaliacoes.keys():
 		if diagnosticos_avaliacoes[doenca][0].result.value == True:
 			st.success(doenca.name + " deu match com os sintomas e resultados selecionados.")
@@ -78,11 +84,13 @@ with col2:
 		for doenca in diagnosticos_ordered_by_score:
 			st.write(f":blue[{doenca.name} | Score = {diagnosticos_avaliacoes[doenca][1]}:]")
 			st.html(diagnosticos_avaliacoes[doenca][0].build_html_string())
+			
 	else:
 		st.button(f"Exibir Árvores de Avaliação", on_click=click_button, key="exibir_arvore")
 
 
 with col1:
+
 	most_common_sintoma = sq.get_most_common_sintoma(sintomas, present_sintomas, not_present_sintomas)
 	st.write("Sintoma mais comum:", most_common_sintoma)
 
@@ -91,5 +99,6 @@ with col1:
 	
 	df_sintoma_doencas = sq.st_write_sintoma_doencas_table()
 	st.dataframe(df_sintoma_doencas)
+
 	df_resultado_doencas = sq.st_write_resultado_doencas_table()
 	st.dataframe(df_resultado_doencas)

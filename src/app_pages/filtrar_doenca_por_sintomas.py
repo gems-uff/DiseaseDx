@@ -7,7 +7,7 @@ st.set_page_config(layout="wide", page_icon="🔬")
 st.title("Filtrar Doencas por Sintomas")
 
 
-def format_func(item):
+def format_func(item) -> str:
     if isinstance(item, Sintoma):
         return f"{item.manifestacao.name} no(a) {item.regiao_do_corpo.name}" if item.regiao_do_corpo else f"{item.manifestacao.name}"
     else:
@@ -58,7 +58,7 @@ with col2:
 
 
 # Listar as doenças associadas ao sintoma
-diagnosticos, _ = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
+diagnosticos = sq.get_diagnosticos_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)
 doencas = [doenca for doenca in diagnosticos]
 st.write("Possiveis Doencas:", doencas)
 

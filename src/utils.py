@@ -1,6 +1,5 @@
 from sqlalchemy import select
-from sqlalchemy.orm import Session, joinedload, selectin_polymorphic, subqueryload, selectinload
-from sqlalchemy import create_engine
+from sqlalchemy.orm import Session, joinedload
 from db_config import DatabaseConfig
 from models import Doenca, Diagnostico, Or, And, AoMenos, Sintoma, Manifestacao, RegiaoComposta, RegiaoDoCorpo, Orgao, Exame, Resultado, Expressao, FatosSintomaResultado, AvaliaNode
 import streamlit as st
@@ -8,8 +7,20 @@ import pandas as pd
 from tribool import Tribool
 
 
+
+
 class StreamlitQueries():
-    def __init__(self):
+    """
+    Class to handle all queries to the database using SQLAlchemy.
+    It uses Streamlit's caching to optimize the performance of the queries.
+    """
+    def __init__(self) -> None:
+        """
+        Initialize the class and load the database engine.
+        It also loads all classes related to the diagnosis from the database into memory, saving them in dictionaries.
+        This dictionary is used to avoid querying the database multiple times.
+        We use it in the add functions to avoid duplicate entries by checking if it's already in the dict.
+        """
         self.engine = DatabaseConfig().load_engine()
         self.manifestacoes = {}
         self.or_cache = {}
@@ -26,8 +37,13 @@ class StreamlitQueries():
                 self.or_cache[key] = or_
 
 
-    # Função recursiva para verificar se uma expressão contém outra expressão
-    def contains_expression(self, expr, target_expr):
+
+
+    def contains_expression(self, expr, target_expr) -> bool:
+        """
+        Check if the expression contains the target expression.
+        This is used to check if a symptom or result is part of the expression.
+        """
         if expr == target_expr:
             return True
         if isinstance(expr, (And, Or)):
@@ -37,8 +53,13 @@ class StreamlitQueries():
         return False
     
     
-    # Função recursiva para buscar todos os sintomas de uma expressão
-    def get_all_sintomas_from_expression(_self, expr):
+    
+
+    def get_all_sintomas_from_expression(_self, expr) -> list[Sintoma]:
+        """
+        Function to get all symptoms from an expression.
+        It uses a recursive function to traverse the expression tree and collect all symptoms.
+        """
         sintomas = set()
         
         def collect_sintomas(expr):
@@ -55,8 +76,13 @@ class StreamlitQueries():
         return list(sintomas)
     
 
-    # Função recursiva para buscar todos os resultados de uma expressão
-    def get_all_resultados_from_expression(_self, expr):
+
+
+    def get_all_resultados_from_expression(_self, expr) -> list[Resultado]:
+        """
+        Function to get all results from an expression.
+        It uses a recursive function to traverse the expression tree and collect all results.
+        """
         resultados = set()
         
         def collect_resultados(expr):
@@ -73,45 +99,65 @@ class StreamlitQueries():
         return list(resultados)
     
 
-    # Função para buscar todas as manifestações do banco de dados
+
+
     @st.cache_data
-    def get_all_manifestacoes(_self):
+    def get_all_manifestacoes(_self) -> list[Manifestacao]:
+        """
+        Function to get all manifestations from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Manifestacao)
             manifestacoes = session.scalars(statement).unique().all()
             return manifestacoes
     
 
-    # Função para buscar todas as regiões compostas do banco de dados
+    
+
     @st.cache_data
-    def get_all_regioes_compostas(_self):
+    def get_all_regioes_compostas(_self) -> list[RegiaoComposta]:
+        """
+        Function to get all composed regions from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(RegiaoComposta)
             regioes_compostas = session.scalars(statement).unique().all()
             return regioes_compostas
         
     
-    # Função para buscar todos os órgãos do banco de dados
+    
+
     @st.cache_data
-    def get_all_orgaos(_self):
+    def get_all_orgaos(_self) -> list[Orgao]:
+        """
+        Function to get all organs from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Orgao)
             orgaos = session.scalars(statement).unique().all()
             return orgaos
         
     
-    # Função para buscar todos os exames do banco de dados
+    
+
     @st.cache_data
-    def get_all_exames(_self):
+    def get_all_exames(_self) -> list[Exame]:
+        """
+        Function to get all exams from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Exame)
             exames = session.scalars(statement).unique().all()
             return exames
 
 
-    # Função para buscar todos os sintomas do banco de dados
+    
+
     @st.cache_data
-    def get_all_sintomas(_self):
+    def get_all_sintomas(_self) -> list[Sintoma]:
+        """
+        Function to get all symptoms from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Sintoma).options(
                 joinedload(Sintoma.manifestacao),
@@ -121,9 +167,13 @@ class StreamlitQueries():
             return sintomas
         
         
-    # Função para buscar todos os resultados do banco de dados
+    
+
     @st.cache_data
-    def get_all_resultados(_self):
+    def get_all_resultados(_self) -> list[Resultado]:
+        """
+        Function to get all results from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Resultado).options(
                 joinedload(Resultado.exame)
@@ -132,17 +182,25 @@ class StreamlitQueries():
             return resultados
         
     
-    # Função para buscar todas as doenças
+    
+
     @st.cache_data
-    def get_all_doencas(_self):
+    def get_all_doencas(_self) -> list[Doenca]:
+        """
+        Function to get all diseases from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             doencas = session.query(Doenca).all()
             return doencas
         
     
-    # Função para buscar todas as expressões do banco de dados
+    
+
     @st.cache_data
-    def get_all_expressions(_self):
+    def get_all_expressions(_self) -> list[Expressao]:
+        """
+        Function to get all expressions from the database.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             statement = select(Expressao)
             expressao = session.scalars(statement).unique().all()
@@ -150,9 +208,17 @@ class StreamlitQueries():
             return expressao
         
 
-    # Função para buscar todos os sintomas associados a uma doença
+
+
+
+
+
+    
     @st.cache_data(hash_funcs={Doenca: lambda doenca: doenca.id})
-    def get_sintomas_by_doenca(_self, target_doenca):
+    def get_sintomas_by_doenca(_self, target_doenca) -> list[Sintoma]:
+        """
+        Function to get all symptoms associated with a disease.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             target_doenca = session.get(Doenca, target_doenca.id)
 
@@ -166,7 +232,7 @@ class StreamlitQueries():
                 if diag.doenca == target_doenca:
                     sintomas = _self.get_all_sintomas_from_expression(diag.expressao)
             
-            # TODO: Melhor do que usar o st.write como gambiarra mas deve ser melhor entendendo os tipos de load do sqlalchemy como selectin polymorphic (problema do DetachedInstanceError)
+            # TODO: Ver eager loading pra evitar DetachedInstanceError
             for sintoma in sintomas:
                 if sintoma.regiao_do_corpo != None:
                     sintoma.regiao_do_corpo = session.get(RegiaoDoCorpo, sintoma.regiao_do_corpo_id)
@@ -174,10 +240,14 @@ class StreamlitQueries():
 
             return sintomas
         
+
+
     
-    # Função para buscar todos os resultados associados a uma doença
     @st.cache_data(hash_funcs={Doenca: lambda doenca: doenca.id})
-    def get_resultados_by_doenca(_self, target_doenca):
+    def get_resultados_by_doenca(_self, target_doenca) -> list[Resultado]:
+        """
+        Function to get all results associated with a disease.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             target_doenca = session.get(Doenca, target_doenca.id)
 
@@ -197,9 +267,13 @@ class StreamlitQueries():
             return resultados
 
 
-    # Função para buscar todos os diagnósticos associados a um sintoma
+
+
     @st.cache_data(hash_funcs={Sintoma: lambda sintoma: sintoma.id})
-    def get_diagnosticos_by_sintoma(_self, sintoma):
+    def get_diagnosticos_by_sintoma(_self, sintoma) -> list[Diagnostico]:
+        """
+        Function to get all diagnoses associated with a symptom.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             sintoma = session.get(Sintoma, sintoma.id)
 
@@ -216,9 +290,13 @@ class StreamlitQueries():
             return diagnosticos_filtrados
         
 
-    # Função para buscar todos os diagnósitcos associados a um resultado
+    
+
     @st.cache_data(hash_funcs={Resultado: lambda resultado: resultado.id})
-    def get_diagnosticos_by_resultado(_self, resultado):
+    def get_diagnosticos_by_resultado(_self, resultado) -> list[Diagnostico]:
+        """
+        Function to get all diagnoses associated with a result.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             resultado = session.get(Resultado, resultado.id)
 
@@ -235,9 +313,13 @@ class StreamlitQueries():
             return diagnosticos_filtrados
         
 
-    # Função para buscar o diagnóstico de uma doença
+    
+
     @st.cache_data(hash_funcs={Doenca: lambda doenca: doenca.id})
-    def get_diagnostico_by_doenca(_self, doenca):
+    def get_diagnostico_by_doenca(_self, doenca) -> Diagnostico:
+        """
+        Function to get the diagnosis associated with a disease.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             doenca = session.get(Doenca, doenca.id)
 
@@ -253,8 +335,12 @@ class StreamlitQueries():
             return diag
         
     
-    # Função para calcular o score de um nó
-    def get_score(_self, node: AvaliaNode):
+    
+    
+    def get_score(_self, node: AvaliaNode) -> float:
+        """
+        Function to get the score of a node in the expression tree.
+        """
         if isinstance(node.instance, (Sintoma, Resultado)):
             if node.result is Tribool(True):
                 score = 1
@@ -271,9 +357,50 @@ class StreamlitQueries():
         return score
 
 
-    # Função para buscar todas as possíveis doenças associadas a listas de sintomas presentes e ausentes
+    
+
     @st.cache_data(hash_funcs={Sintoma: lambda sintoma: sintoma.id, Resultado: lambda resultado: resultado.id})
-    def get_diagnosticos_by_list_of_sintomas_and_resultados(_self, present_sintomas, not_present_sintomas, present_resultados, not_present_resultados):
+    def get_diagnosticos_by_list_of_sintomas_and_resultados(_self, present_sintomas, not_present_sintomas, present_resultados, not_present_resultados) -> list[Diagnostico]:
+        """
+        Function to get all diagnoses associated with a list of symptoms and results.
+        """
+        with Session(_self.engine, expire_on_commit=False) as session:
+            sintomas = _self.get_all_sintomas()
+            sintomas_presentes = [session.get(Sintoma, sintoma.id) for sintoma in present_sintomas]
+            sintomas_ausentes = [session.get(Sintoma, sintoma.id) for sintoma in not_present_sintomas]
+
+            resultados = _self.get_all_resultados()
+            resultados_presentes = [session.get(Resultado, resultado.id) for resultado in present_resultados]
+            resultados_ausentes = [session.get(Resultado, resultado.id) for resultado in not_present_resultados]
+
+            diagnosticos = session.query(Diagnostico).options(
+                joinedload(Diagnostico.doenca),
+                joinedload(Diagnostico.expressao)
+            ).all()
+            
+            diagnosticos_filtrados = {}
+
+            fatos = FatosSintomaResultado(sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes)
+
+            for diag in diagnosticos:
+                print(f"\n- Doenca: {diag.doenca.name}")
+                avalia_result, avalia_return = diag.expressao.avalia(fatos)
+                print(f"- Avalia Result: {avalia_result}")
+                avalia_return.print_tree() # TODO: Ajeitar o loading para evitar DetachedInstanceError
+
+                if avalia_result.value is not False:
+                    diagnosticos_filtrados[diag.doenca] = diag.expressao
+
+            return diagnosticos_filtrados
+
+
+
+
+    @st.cache_data(hash_funcs={Sintoma: lambda sintoma: sintoma.id, Resultado: lambda resultado: resultado.id})
+    def get_diagnosticos_avaliacoes_by_list_of_sintomas_and_resultados(_self, present_sintomas, not_present_sintomas, present_resultados, not_present_resultados) -> dict[Doenca, tuple[AvaliaNode, float]]:
+        """
+        Function to get all diagnoses evaluations associated with a list of symptoms and results.
+        """
         with Session(_self.engine, expire_on_commit=False) as session:
             sintomas = _self.get_all_sintomas()
             sintomas_presentes = [session.get(Sintoma, sintoma.id) for sintoma in present_sintomas]
@@ -290,7 +417,6 @@ class StreamlitQueries():
             
             avalia_dict = {}
 
-            # TODO: Validar essa lógica novamente
             fatos = FatosSintomaResultado(sintomas, sintomas_presentes, sintomas_ausentes, resultados, resultados_presentes, resultados_ausentes)
             fatos.print_fatos()
             for diag in diagnosticos:
@@ -306,9 +432,13 @@ class StreamlitQueries():
             return avalia_dict
         
     
-    # Função para buscar o sintoma mais comum entre todos os diagnósticos
+    
+
     @st.cache_data(hash_funcs={Sintoma: lambda sintoma: sintoma.id})
-    def get_most_common_sintoma(_self, sintomas, present_sintomas, not_present_sintomas):
+    def get_most_common_sintoma(_self, sintomas, present_sintomas, not_present_sintomas) -> Sintoma:
+        """
+        Function to get the most common symptom among all diagnoses.
+        """
         max_ammount = 0
         with Session(_self.engine, expire_on_commit=False) as session:
 
@@ -333,9 +463,13 @@ class StreamlitQueries():
         return most_common_sintoma
     
     
-    # Função para buscar o resultado mais comum entre todos os diagnósticos
+    
+
     @st.cache_data(hash_funcs={Resultado: lambda resultado: resultado.id})
-    def get_most_common_resultado(_self, resultados, present_resultados, not_present_resultados):
+    def get_most_common_resultado(_self, resultados, present_resultados, not_present_resultados) -> Resultado:
+        """
+        Function to get the most common result among all diagnoses.
+        """
         max_ammount = 0
         with Session(_self.engine, expire_on_commit=False) as session:
 
@@ -363,12 +497,11 @@ class StreamlitQueries():
 
 
 
-
-
-
-
-    # Função para adicionar uma nova manifestação ao banco de dados
-    def add_manifestacao(self, manifestacao_str):
+    
+    def add_manifestacao(self, manifestacao_str) -> str:
+        """
+        Function to add a new manifestation to the database.
+        """
         manifestacao = Manifestacao(name=manifestacao_str)
         if self.manifestacoes.get(manifestacao_str) == None and manifestacao_str != "":
             self.manifestacoes[manifestacao_str] = manifestacao
@@ -379,9 +512,14 @@ class StreamlitQueries():
         else:
             return 'Exists'
         
-    # Função para adicionar um novo or ao banco de dados
-    def add_or(self, left_expr, right_expr):
-        # Generate a unique key based on the IDs of left_expr and right_expr
+    
+
+
+    def add_or(self, left_expr, right_expr) -> str:
+        """
+        Function to add a new Or object to the database.
+        """
+        # Create a unique key for the Or object based on the left and right expressions
         key = (left_expr.id, right_expr.id)
 
         # Check if the Or object already exists in the cache
@@ -405,24 +543,36 @@ class StreamlitQueries():
             return 'Created'
 
 
-    # Função para adicionar um novo órgão ao banco de dados
-    def add_orgao(self, orgao):
+    
+
+    def add_orgao(self, orgao) -> str:
+        """
+        Function to add a new organ to the database.
+        """
         with Session(self.engine, expire_on_commit=False) as session:
             session.add(orgao)
             session.commit()
             return orgao
         
 
-    # Função para adicionar uma nova região composta ao banco de dados
-    def add_regiao_composta(self, regiao_composta):
+    
+
+    def add_regiao_composta(self, regiao_composta) -> str:
+        """
+        Function to add a new composed region to the database.
+        """
         with Session(self.engine, expire_on_commit=False) as session:
             session.add(regiao_composta)
             session.commit()
             return regiao_composta
         
     
-    # Função para adicionar um novo sintoma ao banco de dados
-    def add_sintoma(self, sintoma):
+    
+
+    def add_sintoma(self, sintoma) -> str:
+        """
+        Function to add a new symptom to the database.
+        """
         with Session(self.engine, expire_on_commit=False) as session:
             session.add(sintoma)
             session.commit()
@@ -434,10 +584,12 @@ class StreamlitQueries():
 
 
 
-
-    # Criar um dataframe para exibir as informações de todas as doenças associadas a cada sintoma
+    
     @st.cache_data
-    def st_write_sintoma_doencas_table(_self):
+    def st_write_sintoma_doencas_table(_self) -> pd.DataFrame:
+        """
+        Create a dataframe to display the information of all diseases associated with each symptom.
+        """
         df = pd.DataFrame(columns=["Sintoma", "Doenças", "Count"])
         sintomas = _self.get_all_sintomas()
         for sintoma in sintomas:
@@ -456,13 +608,16 @@ class StreamlitQueries():
                     "Count": len(doencas_names)
                 }])], ignore_index=True)
         df_sorted = df.sort_values(by="Count", ascending=False)
-        # st.dataframe(df_sorted)
         return df_sorted
 
 
-    # Criar um dataframe para exibir as informações de todos as doenças associadas a cada resultado
+    
+
     @st.cache_data
-    def st_write_resultado_doencas_table(_self):
+    def st_write_resultado_doencas_table(_self) -> pd.DataFrame:
+        """
+        Create a dataframe to display the information of all diseases associated with each result.
+        """
         df = pd.DataFrame(columns=["Resultado", "Doenças", "Count"])
         resultados = _self.get_all_resultados()
         for resultado in resultados:
@@ -474,13 +629,16 @@ class StreamlitQueries():
                 "Count": len(doencas_names)
             }])], ignore_index=True)
         df_sorted = df.sort_values(by="Count", ascending=False)
-        # st.dataframe(df_sorted)
         return df_sorted
 
 
-    # Criar um dataframe para exibir todos os sintomas de uma doença
+    
+
     @st.cache_data
-    def st_write_doenca_sintomas_table(_self):
+    def st_write_doenca_sintomas_table(_self) -> pd.DataFrame:
+        """
+        Create a dataframe to display the information of all diseases and their symptoms.
+        """
         df = pd.DataFrame(columns=["Doença", "Sintomas"])
         doencas = _self.get_all_doencas()
         for doenca in doencas:
@@ -494,13 +652,16 @@ class StreamlitQueries():
                 "Doença": doenca.name,
                 "Sintomas": sintomas_names
             }])], ignore_index=True)
-        # st.dataframe(df)
         return df
 
 
-    # Criar um dataframe para exibir todos os sintomas e resultados de uma doença
+    
+
     @st.cache_data(hash_funcs={Doenca: lambda doenca: doenca.id})
-    def st_write_doenca_sintomas_resultados_table(_self):
+    def st_write_doenca_sintomas_resultados_table(_self) -> pd.DataFrame:
+        """
+        Create a dataframe to display the information of all diseases, their symptoms and results.
+        """
         df = pd.DataFrame(columns=["Doença", "Sintomas", "Resultados"])
         doencas = _self.get_all_doencas()
         for doenca in doencas:
@@ -517,13 +678,16 @@ class StreamlitQueries():
                 "Sintomas": sintomas_names,
                 "Resultados": resultados_names
             }])], ignore_index=True)
-        # st.dataframe(df)
         return df
 
 
-    # Criar um dataframe para exibir a expressão de cada diagnóstico
+    
+
     @st.cache_data
-    def st_write_doenca_diagnostico_table(_self):
+    def st_write_doenca_diagnostico_table(_self) -> pd.DataFrame:
+        """
+        Create a dataframe to display the information of all diseases and their diagnoses.
+        """
         df = pd.DataFrame(columns=["Doença", "Diagnostico", "Especificidade", "Sensibilidade", "Acurácia"])
         doencas = _self.get_all_doencas()
         for doenca in doencas:
@@ -535,5 +699,4 @@ class StreamlitQueries():
                 "Sensibilidade": diagnostico.sensibilidade,
                 "Acurácia": diagnostico.acuracia
             }])], ignore_index=True)
-        # st.dataframe(df)
         return df

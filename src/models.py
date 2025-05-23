@@ -247,23 +247,23 @@ class And(Expressao):
             avalia_node.score = left_tree.score
             avalia_node.children.append(left_tree)
             return left_result, avalia_node
-        else:
-            right_result, right_tree = self.right_expr.avalia(fatos)
-            if right_result is Tribool(False):
-                avalia_node.result = right_result
-                avalia_node.score = right_tree.score
-                avalia_node.children.append(right_tree)
-                return right_result, avalia_node
-            else:
-                result = Tribool(left_result) & Tribool(right_result)
-                avalia_node.result = result
+        
+        right_result, right_tree = self.right_expr.avalia(fatos)
+        if right_result is Tribool(False):
+            avalia_node.result = right_result
+            avalia_node.score = right_tree.score
+            avalia_node.children.append(right_tree)
+            return right_result, avalia_node
+        
+        result = Tribool(left_result) & Tribool(right_result)
+        avalia_node.result = result
 
-                score = (left_tree.score + right_tree.score) / 2
-                avalia_node.score = score
-                
-                avalia_node.children.append(left_tree)
-                avalia_node.children.append(right_tree)
-                return result, avalia_node
+        score = (left_tree.score + right_tree.score) / 2
+        avalia_node.score = score
+        
+        avalia_node.children.append(left_tree)
+        avalia_node.children.append(right_tree)
+        return result, avalia_node
     
     
     def contem(self, fato) -> bool:

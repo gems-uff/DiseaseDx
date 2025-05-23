@@ -333,28 +333,6 @@ class StreamlitQueries():
                     return diag
 
             return diag
-        
-    
-    
-    
-    def get_score(_self, node: AvaliaNode) -> float:
-        """
-        Function to get the score of a node in the expression tree.
-        """
-        if isinstance(node.instance, (Sintoma, Resultado)):
-            if node.result is Tribool(True):
-                score = 1
-            elif node.result is Tribool(False):
-                score = -0.5
-            else:
-                score = 0
-        else:
-            score = 0
-
-        for child in node.children:
-            score += _self.get_score(child)
-
-        return score
 
 
     
@@ -425,7 +403,7 @@ class StreamlitQueries():
                 print(f"- Avalia Result: {avalia_result}")
                 avalia_return.print_tree() # TODO: Ajeitar o loading para evitar DetachedInstanceError
 
-                diag_score = _self.get_score(avalia_return)
+                diag_score = f"{avalia_return.score:.2f}"
 
                 avalia_dict[diag.doenca] = (avalia_return, diag_score)
 

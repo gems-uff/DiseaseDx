@@ -70,6 +70,7 @@ class AvaliaNode():
         self.result = None
         self.children = []
         self.instance = None
+        self.score = None
 
 
     def print_tree(self, level=0) -> None:
@@ -105,19 +106,19 @@ class AvaliaNode():
         """
         if level == 0:
             if self.result is Tribool(True):
-                string = f"<span style='background-color:green;'>{self.expressao} ({self.result})</span>"
+                string = f"<span style='background-color:green;'>{self.expressao} ({self.result}) ({self.score:.2f})</span>"
             elif self.result is Tribool(False):
-                string = f"<span style='background-color:red;'>{self.expressao} ({self.result})</span>"
+                string = f"<span style='background-color:red;'>{self.expressao} ({self.result}) ({self.score:.2f})</span>"
             else:
-                string = f"{self.expressao} ({self.result})"
+                string = f"{self.expressao} ({self.result}) ({self.score:.2f})"
         else:
             indent = "&nbsp;" * 12 * level
             if self.result is Tribool(True):
-                string = f"<br>{indent}<span style='background-color:green;'>{self.expressao} ({self.result})</span>"
+                string = f"<br>{indent}<span style='background-color:green;'>{self.expressao} ({self.result}) ({self.score:.2f})</span>"
             elif self.result is Tribool(False):
-                string = f"<br>{indent}<span style='background-color:red;'>{self.expressao} ({self.result})</span>"
+                string = f"<br>{indent}<span style='background-color:red;'>{self.expressao} ({self.result}) ({self.score:.2f})</span>"
             else:
-                string = f"<br>{indent}{self.expressao} ({self.result})"
+                string = f"<br>{indent}{self.expressao} ({self.result}) ({self.score:.2f})"
         for child in self.children:
             string += child.build_html_string(level + 1)
         return string
@@ -237,15 +238,32 @@ class And(Expressao):
         It returns a tuple with the result (if the AND is True, False or Indeterminate) and an AvaliaNode object that represents the evaluation tree.
         """
         avalia_node = AvaliaNode()
-        left_result, left_tree = self.left_expr.avalia(fatos)
-        right_result, right_tree = self.right_expr.avalia(fatos)
-        result = Tribool(left_result) & Tribool(right_result)
-        avalia_node.expressao = self.__class__.__name__
-        avalia_node.result = result
         avalia_node.instance = self
-        avalia_node.children.append(left_tree)
-        avalia_node.children.append(right_tree)
-        return result, avalia_node
+        avalia_node.expressao = self.__class__.__name__
+
+        left_result, left_tree = self.left_expr.avalia(fatos)
+        if left_result is Tribool(False):
+            avalia_node.result = left_result
+            avalia_node.score = left_tree.score
+            avalia_node.children.append(left_tree)
+            return left_result, avalia_node
+        else:
+            right_result, right_tree = self.right_expr.avalia(fatos)
+            if right_result is Tribool(False):
+                avalia_node.result = right_result
+                avalia_node.score = right_tree.score
+                avalia_node.children.append(right_tree)
+                return right_result, avalia_node
+            else:
+                result = Tribool(left_result) & Tribool(right_result)
+                avalia_node.result = result
+
+                score = (left_tree.score + right_tree.score) / 2
+                avalia_node.score = score
+                
+                avalia_node.children.append(left_tree)
+                avalia_node.children.append(right_tree)
+                return result, avalia_node
     
     
     def contem(self, fato) -> bool:
@@ -303,12 +321,18 @@ class Or(Expressao):
         It returns a tuple with the result (if the OR is True, False or Indeterminate) and an AvaliaNode object that represents the evaluation tree.
         """
         avalia_node = AvaliaNode()
+        avalia_node.instance = self
+        avalia_node.expressao = self.__class__.__name__
+
         left_result, left_tree = self.left_expr.avalia(fatos)
         right_result, right_tree = self.right_expr.avalia(fatos)
+
         result = Tribool(left_result) | Tribool(right_result)
-        avalia_node.expressao = self.__class__.__name__
         avalia_node.result = result
-        avalia_node.instance = self
+
+        score = max(left_tree.score, right_tree.score)
+        avalia_node.score = score
+        
         avalia_node.children.append(left_tree)
         avalia_node.children.append(right_tree)
         return result, avalia_node
@@ -368,9 +392,13 @@ class AoMenos(Expressao):
         avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
         count = self.qtd
         count_false = 0
+        total_score = 0
+
         for exp in self.expressoes:
             result, exp_avalia_node = exp.avalia(fatos)
             avalia_node.children.append(exp_avalia_node)
+            total_score += exp_avalia_node.score
+            avalia_node.score = total_score / len(self.expressoes)
 
             if result is Tribool(True):
                 count -= 1
@@ -578,6 +606,14 @@ class Sintoma(Expressao):
         avalia_node.expressao = self
         result = fatos[self]
         avalia_node.result = result
+
+        if result is Tribool(True):
+            score = 1.0
+        elif result is Tribool(False):
+            score = -0.5
+        else:
+            score = 0.0
+        avalia_node.score = score
         return result, avalia_node
 
         
@@ -681,6 +717,14 @@ class Resultado(Expressao):
         avalia_node.expressao = self
         result = fatos[self]
         avalia_node.result = result
+
+        if result is Tribool(True):
+            score = 1.0
+        elif result is Tribool(False):
+            score = -0.5
+        else:
+            score = 0.0
+        avalia_node.score = score
         return result, avalia_node
 
         

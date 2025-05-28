@@ -22,19 +22,67 @@ class StreamlitQueries():
         We use it in the add functions to avoid duplicate entries by checking if it's already in the dict.
         """
         self.engine = DatabaseConfig().load_engine()
-        self.manifestacoes = {}
+        self.manifestacao_cache = {}
+        self.orgao_cache = {}
+        self.regiao_cache = {}
+        self.sintoma_cache = {}
+        self.exame_cache = {}
+        self.resultado_cache = {}
+        self.doenca_cache = {}
+        self.and_cache = {}
         self.or_cache = {}
+        self.aomenos_cache = {}
+        self.diagnostico_cache = {}
+
         with Session(self.engine, expire_on_commit=False) as session:
-            # Carregar todas as manifestações do banco de dados
-            manifestacoes = session.query(Manifestacao).all()
-            for man in manifestacoes:
-                self.manifestacoes[man.name] = man
+            for obj in session.query(Manifestacao).all():
+                key = (obj.name,)
+                self.manifestacao_cache[key] = obj
+
+            for obj in session.query(Orgao).all():
+                key = (obj.name,)
+                self.orgao_cache[key] = obj
             
-            # Carregar todos os or's do banco de dados
-            ors = session.query(Or).all()
-            for or_ in ors:
-                key = (or_.left_expr_id, or_.right_expr_id)
-                self.or_cache[key] = or_
+            for obj in session.query(RegiaoDoCorpo).all():
+                key = (obj.name, obj.type)
+                self.regiao_cache[key] = obj
+
+            for obj in session.query(Sintoma).all():
+                key = (
+                    obj.manifestacao.id if obj.manifestacao else None,
+                    obj.regiao_do_corpo.id if obj.regiao_do_corpo else None,
+                )
+                self.sintoma_cache[key] = obj
+
+            for obj in session.query(Exame).all():
+                key = (obj.name, obj.preco)
+                self.exame_cache[key] = obj
+
+            for obj in session.query(Resultado).all():
+                key = (obj.name, obj.exame.id if obj.exame else None)
+                self.resultado_cache[key] = obj
+
+            for obj in session.query(Doenca).all():
+                key = (obj.name,)
+                self.doenca_cache[key] = obj
+
+            for obj in session.query(And).all():
+                key = (obj.left_expr.id, obj.right_expr.id)
+                self.and_cache[key] = obj
+            
+            for obj in session.query(Or).all():
+                ids = sorted([obj.left_expr.id, obj.right_expr.id])
+                key = tuple(ids)
+                self.or_cache[key] = obj
+
+            for obj in session.query(AoMenos).all():
+                ids = tuple(sorted(e.id for e in obj.expressoes))
+                key = (obj.qtd, ids)
+                self.aomenos_cache[key] = obj
+
+            for obj in session.query(Diagnostico).all():
+                key = (obj.doenca.id if obj.doenca else None, obj.expressao.id if obj.expressao else None)
+                self.diagnostico_cache[key] = obj
 
 
 

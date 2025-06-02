@@ -15,6 +15,7 @@ pydantic = "*"
 sqlalchemy-utils = "*"
 pytest = "*"
 protobuf = "==5.27.0"
+tribool = "*"
 
 [dev-packages]
 

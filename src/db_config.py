@@ -26,6 +26,7 @@ class DatabaseConfig:
         port = "3306"
         dbname = "diseasedx_test"
         connection_string = f"mysql+mysqlconnector://{username}:{password}@{server}:{port}/{dbname}"
+        # connection_string = f"sqlite:///mylocaldb.db"
         engine = create_engine(connection_string, echo=False)
         return engine
     
@@ -38,11 +39,11 @@ class DatabaseConfig:
         """
         engine = self.load_engine()
         if database_exists(engine.url):
-            print(f"Database {self.dbname} already exists. Dropping it...")
+            print(f"Database already exists. Dropping it...")
             drop_database(engine.url)
 
         create_database(engine.url)
-        print(f"Database {self.dbname} created successfully.")
+        print(f"Database created successfully.")
 
         Base.metadata.create_all(engine)
         print("Tables created successfully.")

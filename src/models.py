@@ -240,27 +240,16 @@ class And(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
-
-        left_result, left_tree = self.left_expr.avalia(fatos)
-        if left_result is Tribool(False):
-            avalia_node.result = left_result
-            avalia_node.score = left_tree.score
-            avalia_node.children.append(left_tree)
-            return left_result, avalia_node
         
+        left_result, left_tree = self.left_expr.avalia(fatos) 
         right_result, right_tree = self.right_expr.avalia(fatos)
-        if right_result is Tribool(False):
-            avalia_node.result = right_result
-            avalia_node.score = right_tree.score
-            avalia_node.children.append(right_tree)
-            return right_result, avalia_node
-        
+
         result = Tribool(left_result) & Tribool(right_result)
         avalia_node.result = result
 
         score = (left_tree.score + right_tree.score) / 2
         avalia_node.score = score
-        
+
         avalia_node.children.append(left_tree)
         avalia_node.children.append(right_tree)
         return result, avalia_node
@@ -392,13 +381,15 @@ class AoMenos(Expressao):
         avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
         count = self.qtd
         count_false = 0
-        total_score = 0
+        scores = []
+        n_largests = []
 
         for exp in self.expressoes:
             result, exp_avalia_node = exp.avalia(fatos)
             avalia_node.children.append(exp_avalia_node)
-            total_score += exp_avalia_node.score
-            avalia_node.score = total_score / len(self.expressoes)
+            scores.append(exp_avalia_node.score)
+            n_largests = sorted(scores, reverse=True)[:self.qtd]
+            avalia_node.score = sum(n_largests) / len(self.expressoes)
 
             if result is Tribool(True):
                 count -= 1
@@ -409,6 +400,7 @@ class AoMenos(Expressao):
                 count_false += 1
                 if len(self.expressoes) - count_false < self.qtd:
                     avalia_node.result = result
+                    avalia_node.score = -1 # To prevent a false AoMenos 2 to be equal 0 (cause it would be (1 + -1) / len(self.expressoes) = 0)
                     return result, avalia_node
 
         return Tribool(None), avalia_node
@@ -608,11 +600,11 @@ class Sintoma(Expressao):
         avalia_node.result = result
 
         if result is Tribool(True):
-            score = 1.0
+            score = 1
         elif result is Tribool(False):
-            score = -0.5
+            score = -1
         else:
-            score = 0.0
+            score = 0
         avalia_node.score = score
         return result, avalia_node
 
@@ -719,11 +711,11 @@ class Resultado(Expressao):
         avalia_node.result = result
 
         if result is Tribool(True):
-            score = 1.0
+            score = 1
         elif result is Tribool(False):
-            score = -0.5
+            score = -1
         else:
-            score = 0.0
+            score = 0
         avalia_node.score = score
         return result, avalia_node
 

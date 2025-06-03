@@ -73,7 +73,7 @@ with col2:
 
 	for doenca in diagnosticos_avaliacoes.keys():
 		if diagnosticos_avaliacoes[doenca][0].result.value == True:
-			st.success(doenca.name + " deu match com os sintomas e resultados selecionados.")
+			st.success(doenca.name + " bate com os sintomas e resultados selecionados.")
 
 	if st.session_state.clicked:
 		st.button(f"Ocultar Árvores de Avaliação", on_click=click_button, key="exibir_arvore")

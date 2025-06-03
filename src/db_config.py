@@ -195,17 +195,18 @@ class DatabaseConfig:
 
 
             # Criando uma doença e um diagnóstico para a expressão
+            paper_link1 = "https://doi.org/10.1136/annrheumdis-2019-215048"
             caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
-            diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=nlrp3_expr)
+            diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=nlrp3_expr, paper_link=paper_link1)
 
             fmf = Doenca(name="Familial Mediterranean Fever")
-            diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr)
+            diag = Diagnostico(sensibilidade=0.94, especificidade=0.95, acuracia=0.98, doenca=fmf, expressao=fmf_expr, paper_link=paper_link1)
 
             traps = Doenca(name="TNFRSF1A-Associated Periodic Syndrome")
-            diag = Diagnostico(sensibilidade=0.95, especificidade=0.99, acuracia=0.99, doenca=traps, expressao=tnfrsf1a_expr)
+            diag = Diagnostico(sensibilidade=0.95, especificidade=0.99, acuracia=0.99, doenca=traps, expressao=tnfrsf1a_expr, paper_link=paper_link1)
 
             mkd = Doenca(name="Mevalonate Kinase Deficiency")
-            diag = Diagnostico(sensibilidade=0.98, especificidade=1, acuracia=1, doenca=mkd, expressao=mvk_expr)
+            diag = Diagnostico(sensibilidade=0.98, especificidade=1, acuracia=1, doenca=mkd, expressao=mvk_expr, paper_link=paper_link1)
 
             # Adicionando os objetos no banco de dados (so precisa adicionar a doenca, pois da doenca navega para o diagnostico e expressao)
             session.add(caps)

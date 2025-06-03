@@ -82,7 +82,11 @@ with col2:
 		diagnosticos_ordered_by_score = sorted(diagnosticos_avaliacoes.keys(), key=lambda x: diagnosticos_avaliacoes[x][1], reverse=True)
 		
 		for doenca in diagnosticos_ordered_by_score:
-			st.write(f":blue[{doenca.name} | Score = {diagnosticos_avaliacoes[doenca][1]}:]")
+			diagnostico = sq.get_diagnostico_by_doenca(doenca)
+			if diagnostico.paper_link:
+				st.html(f'<span style="color:#1f77b4;"><a href="{diagnostico.paper_link}" target="_blank">{doenca.name}</a> | Score = {diagnosticos_avaliacoes[doenca][1]}</span>')
+			else:
+				st.html(f'<span style="color:#1f77b4;">{doenca.name} | Score = {diagnosticos_avaliacoes[doenca][1]}</span>')
 			st.html(diagnosticos_avaliacoes[doenca][0].build_html_string())
 			
 	else:

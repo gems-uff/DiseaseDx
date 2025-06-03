@@ -797,6 +797,7 @@ class Diagnostico(Base):
     acuracia: Mapped[Optional[float]] = mapped_column(Float)
     doenca_id: Mapped[int] = mapped_column(ForeignKey("doenca.id"))
     expressao_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
+    paper_link: Mapped[Optional[str]] = mapped_column(String(255))  # Optional link to the paper or source of the diagnosis
     
     doenca: Mapped[Doenca] = relationship("Doenca", back_populates="diagnostico")
     expressao: Mapped[Expressao] = relationship("Expressao")

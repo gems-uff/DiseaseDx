@@ -389,18 +389,19 @@ class AoMenos(Expressao):
             avalia_node.children.append(exp_avalia_node)
             scores.append(exp_avalia_node.score)
             n_largests = sorted(scores, reverse=True)[:self.qtd]
-            avalia_node.score = sum(n_largests) / len(self.expressoes)
+            avalia_node.score = sum(n_largests) / self.qtd
 
             if result is Tribool(True):
                 count -= 1
                 if count == 0:
                     avalia_node.result = result
+                    avalia_node.score = 1
                     return result, avalia_node
             if result is Tribool(False):
                 count_false += 1
                 if len(self.expressoes) - count_false < self.qtd:
                     avalia_node.result = result
-                    avalia_node.score = -1 # To prevent a false AoMenos 2 to be equal 0 (cause it would be (1 + -1) / len(self.expressoes) = 0)
+                    avalia_node.score = -1 # To prevent a false AoMenos 2 to be equal 0 (cause it would be (1 + -1) / len(self.qtd) = 0)
                     return result, avalia_node
 
         return Tribool(None), avalia_node

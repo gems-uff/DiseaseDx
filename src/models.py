@@ -147,20 +147,20 @@ ao_menos_expressoes = Table(
 )
 
 
-# or_expressoes = Table(
-#     "or_expressoes",
-#     Base.metadata,
-#     Column("or_id", Integer, ForeignKey("or.id"), primary_key=True),
-#     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
-# )
+or_expressoes = Table(
+    "or_expressoes",
+    Base.metadata,
+    Column("or_id", Integer, ForeignKey("or.id"), primary_key=True),
+    Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+)
 
 
-# and_expressoes = Table(
-#     "and_expressoes",
-#     Base.metadata,
-#     Column("and_id", Integer, ForeignKey("and.id"), primary_key=True),
-#     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
-# )
+and_expressoes = Table(
+    "and_expressoes",
+    Base.metadata,
+    Column("and_id", Integer, ForeignKey("and.id"), primary_key=True),
+    Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+)
 
 
 

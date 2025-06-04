@@ -379,7 +379,7 @@ class AoMenos(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
-        count = self.qtd
+        count_qtd = self.qtd
         count_false = 0
         scores = []
         n_largests = []
@@ -392,19 +392,21 @@ class AoMenos(Expressao):
             avalia_node.score = sum(n_largests) / self.qtd
 
             if result is Tribool(True):
-                count -= 1
-                if count == 0:
+                count_qtd -= 1
+                if count_qtd == 0:
                     avalia_node.result = result
                     avalia_node.score = 1
-                    return result, avalia_node
+
             if result is Tribool(False):
                 count_false += 1
                 if len(self.expressoes) - count_false < self.qtd:
                     avalia_node.result = result
                     avalia_node.score = -1 # To prevent a false AoMenos 2 to be equal 0 (cause it would be (1 + -1) / len(self.qtd) = 0)
-                    return result, avalia_node
 
-        return Tribool(None), avalia_node
+        if avalia_node.result is None:
+            return Tribool(None), avalia_node
+        else:
+            return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:

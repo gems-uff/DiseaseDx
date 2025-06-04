@@ -136,7 +136,7 @@ class Base(DeclarativeBase):
 
 
 """
-Table to represent the many-to-many relationship between AoMenos and Expressao.
+Tables to represent the many-to-many relationship between AoMenos, And, Or and Expressao.
 This table is used to store the expressions that are part of the AoMenos expression.
 """
 ao_menos_expressoes = Table(
@@ -145,6 +145,22 @@ ao_menos_expressoes = Table(
     Column("ao_menos_id", Integer, ForeignKey("ao_menos.id"), primary_key=True),
     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
 )
+
+
+# or_expressoes = Table(
+#     "or_expressoes",
+#     Base.metadata,
+#     Column("or_id", Integer, ForeignKey("or.id"), primary_key=True),
+#     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+# )
+
+
+# and_expressoes = Table(
+#     "and_expressoes",
+#     Base.metadata,
+#     Column("and_id", Integer, ForeignKey("and.id"), primary_key=True),
+#     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+# )
 
 
 
@@ -212,11 +228,8 @@ class And(Expressao):
     """
     __tablename__ = "and"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-
-    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
-    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
+    
+    expressoes: Mapped[list["Expressao"]] = relationship("Expressao", secondary=and_expressoes, back_populates="and_expr")
 
     __mapper_args__ = {
         "polymorphic_identity": "and",
@@ -224,12 +237,11 @@ class And(Expressao):
     }
 
     
-    def __init__(self, left: Expressao, right: Expressao) -> None:
+    def __init__(self, expressoes: list[Expressao]) -> None:
         """
-        Constructor for the AND expression. It takes two expressions as arguments. Left and right, both of type Expressao.
+        Constructor for the AND expression. It takes a list of expressions as arguments.
         """
-        self.left_expr = left
-        self.right_expr = right
+        self.expressoes = expressoes
 
 
     def avalia(self, fatos: FatosSintomaResultado) -> tuple[Tribool, AvaliaNode]:
@@ -240,6 +252,12 @@ class And(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
+
+        for expr in self.expressoes:
+            expr_result, expr_avalia_node = expr.avalia(fatos)
+            avalia_node.children.append(expr_avalia_node)
+
+
         
         left_result, left_tree = self.left_expr.avalia(fatos) 
         right_result, right_tree = self.right_expr.avalia(fatos)
@@ -284,11 +302,8 @@ class Or(Expressao):
     """
     __tablename__ = "or"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-
-    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
-    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
+    
+    expressoes: Mapped[list["Expressao"]] = relationship("Expressao", secondary=or_expressoes, back_populates="or_expr")
 
     __mapper_args__ = {
         "polymorphic_identity": "or",
@@ -379,7 +394,7 @@ class AoMenos(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = f"{self.__class__.__name__}({self.qtd})"
-        count = self.qtd
+        count_qtd = self.qtd
         count_false = 0
         scores = []
         n_largests = []
@@ -392,19 +407,21 @@ class AoMenos(Expressao):
             avalia_node.score = sum(n_largests) / self.qtd
 
             if result is Tribool(True):
-                count -= 1
-                if count == 0:
+                count_qtd -= 1
+                if count_qtd == 0:
                     avalia_node.result = result
                     avalia_node.score = 1
-                    return result, avalia_node
+
             if result is Tribool(False):
                 count_false += 1
                 if len(self.expressoes) - count_false < self.qtd:
                     avalia_node.result = result
                     avalia_node.score = -1 # To prevent a false AoMenos 2 to be equal 0 (cause it would be (1 + -1) / len(self.qtd) = 0)
-                    return result, avalia_node
 
-        return Tribool(None), avalia_node
+        if avalia_node.result is None:
+            return Tribool(None), avalia_node
+        else:
+            return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:

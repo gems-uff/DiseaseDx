@@ -66,14 +66,14 @@ class StreamlitQueries():
                 key = (obj.name,)
                 self.doenca_cache[key] = obj
 
-            for obj in session.query(And).all():
-                key = (obj.left_expr.id, obj.right_expr.id)
-                self.and_cache[key] = obj
+            # for obj in session.query(And).all():
+            #     key = (obj.left_expr.id, obj.right_expr.id)
+            #     self.and_cache[key] = obj
             
-            for obj in session.query(Or).all():
-                ids = sorted([obj.left_expr.id, obj.right_expr.id])
-                key = tuple(ids)
-                self.or_cache[key] = obj
+            # for obj in session.query(Or).all():
+            #     ids = sorted([obj.left_expr.id, obj.right_expr.id])
+            #     key = tuple(ids)
+            #     self.or_cache[key] = obj
 
             for obj in session.query(AoMenos).all():
                 ids = tuple(sorted(e.id for e in obj.expressoes))
@@ -94,9 +94,7 @@ class StreamlitQueries():
         """
         if expr == target_expr:
             return True
-        if isinstance(expr, (And, Or)):
-            return self.contains_expression(expr.left_expr, target_expr) or self.contains_expression(expr.right_expr, target_expr)
-        if isinstance(expr, AoMenos):
+        if isinstance(expr, (And, Or, AoMenos)):
             return any(self.contains_expression(e, target_expr) for e in expr.expressoes)
         return False
     
@@ -113,10 +111,7 @@ class StreamlitQueries():
         def collect_sintomas(expr):
             if isinstance(expr, Sintoma):
                 sintomas.add(expr)
-            elif isinstance(expr, (And, Or)):
-                collect_sintomas(expr.left_expr)
-                collect_sintomas(expr.right_expr)
-            elif isinstance(expr, AoMenos):
+            elif isinstance(expr, (And, Or, AoMenos)):
                 for e in expr.expressoes:
                     collect_sintomas(e)
         
@@ -136,10 +131,7 @@ class StreamlitQueries():
         def collect_resultados(expr):
             if isinstance(expr, Resultado):
                 resultados.add(expr)
-            elif isinstance(expr, (And, Or)):
-                collect_resultados(expr.left_expr)
-                collect_resultados(expr.right_expr)
-            elif isinstance(expr, AoMenos):
+            elif isinstance(expr, (And, Or, AoMenos)):
                 for e in expr.expressoes:
                     collect_resultados(e)
         

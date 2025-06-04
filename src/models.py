@@ -179,6 +179,8 @@ class Expressao(Base):
     type: Mapped[str] = mapped_column(String(255))
 
     ao_menos_expr: Mapped[list["AoMenos"]] = relationship("AoMenos", secondary=ao_menos_expressoes, back_populates="expressoes")
+    or_expr: Mapped[list["Or"]] = relationship("Or", secondary=or_expressoes, back_populates="expressoes")
+    and_expr: Mapped[list["And"]] = relationship("And", secondary=and_expressoes, back_populates="expressoes")
 
     __mapper_args__ = {
         "polymorphic_identity": "expressao",
@@ -252,39 +254,45 @@ class And(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
+        results = []
+        scores = []
 
         for expr in self.expressoes:
             expr_result, expr_avalia_node = expr.avalia(fatos)
             avalia_node.children.append(expr_avalia_node)
+            scores.append(expr_avalia_node.score)
+            results.append(expr_result)
 
+        if any(result is Tribool(False) for result in results):
+            avalia_node.result = Tribool(False)
+            avalia_node.score = -1
+        elif all(result is Tribool(True) for result in results):
+            avalia_node.result = Tribool(True)
+            avalia_node.score = 1
+        else:
+            avalia_node.result = Tribool(None)
+            avalia_node.score = sum(scores) / len(scores)
 
-        
-        left_result, left_tree = self.left_expr.avalia(fatos) 
-        right_result, right_tree = self.right_expr.avalia(fatos)
-
-        result = Tribool(left_result) & Tribool(right_result)
-        avalia_node.result = result
-
-        score = (left_tree.score + right_tree.score) / 2
-        avalia_node.score = score
-
-        avalia_node.children.append(left_tree)
-        avalia_node.children.append(right_tree)
-        return result, avalia_node
+        return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:
         """
         Check if the AND expression contains the given fact (sintoma or resultado).
         """
-        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
+        for expr in self.expressoes:
+            if expr.contem(fato):
+                return True
+        return False
+
     
 
     def __repr__(self) -> str:
         """
         Return a string representation of the AND expression.
         """
-        return f"{self.__class__.__name__}({self.left_expr}, {self.right_expr})"
+        ands = " & ".join([expr for expr in self.expressoes])
+        return f"{self.__class__.__name__}({ands})"
 
 
 
@@ -311,12 +319,11 @@ class Or(Expressao):
     }
 
     
-    def __init__(self, left: Expressao, right: Expressao) -> None:
+    def __init__(self, expressoes: list[Expressao]) -> None:
         """
-        Constructor for the OR expression. It takes two expressions as arguments. Left and right, both of type Expressao.
+        Constructor for the OR expression. It takes a list of expressions as arguments.
         """
-        self.left_expr = left
-        self.right_expr = right
+        self.expressoes = expressoes
 
 
     def avalia(self, fatos: FatosSintomaResultado) -> tuple[Tribool, AvaliaNode]:
@@ -327,32 +334,43 @@ class Or(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
+        results = []
+        scores = []
 
-        left_result, left_tree = self.left_expr.avalia(fatos)
-        right_result, right_tree = self.right_expr.avalia(fatos)
+        for expr in self.expressoes:
+            expr_result, expr_avalia_node = expr.avalia(fatos)
+            avalia_node.children.append(expr_avalia_node)
+            scores.append(expr_avalia_node.score)
+            results.append(expr_result)
 
-        result = Tribool(left_result) | Tribool(right_result)
-        avalia_node.result = result
+        if any(result is Tribool(True) for result in results):
+            avalia_node.result = Tribool(True)
+            avalia_node.score = 1
+        elif all(result is Tribool(False) for result in results):
+            avalia_node.result = Tribool(False)
+            avalia_node.score = -1
+        else:
+            avalia_node.result = Tribool(None)
+            avalia_node.score = max(scores)
 
-        score = max(left_tree.score, right_tree.score)
-        avalia_node.score = score
-        
-        avalia_node.children.append(left_tree)
-        avalia_node.children.append(right_tree)
-        return result, avalia_node
+        return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:
         """
         Check if the OR expression contains the given fact (sintoma or resultado).
         """
-        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
+        for expr in self.expressoes:
+            if expr.contem(fato):
+                return True
+        return False
 
     def __repr__(self) -> str:
         """
         Return a string representation of the OR expression.
         """
-        return f"{self.__class__.__name__}({self.left_expr}, {self.right_expr})"
+        ors = " | ".join([expr for expr in self.expressoes])
+        return f"{self.__class__.__name__}({ors})"
 
 
 

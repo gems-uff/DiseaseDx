@@ -134,67 +134,67 @@ class DatabaseConfig:
             vus_de_mvk = Resultado(name="VUS de MVK", exame=exame_mvk)
 
             # Criando os ojetos das Expressões
-            nlrp3_expr = Or(
-                And(
+            nlrp3_expr = Or([
+                And([
                     variante_nlrp3_patogenica,
                     AoMenos(
                         1,
                         [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
                     )
-                ),
-                And(
+            ]),
+                And([
                     vus_de_nlrp3,
                     AoMenos(
                         2,
                         [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
                     )
-                )
-            )
+            ])
+            ])
 
-            fmf_expr = Or(
-                And(
+            fmf_expr = Or([
+                And([
                     variante_mefv_patogenica,
                     AoMenos(
                         1,
                         [febre, dor_no_peito, dor_no_abdome, artrite_no_corpo]
                     )
-                ),
-                And(
+                ]),
+                And([
                     vus_de_mefv,
                     AoMenos(
                         2,
                         [febre, dor_no_peito, dor_no_abdome, artrite_no_corpo]
                     )
-                )
-            )
+                ])
+            ])
 
-            tnfrsf1a_expr = Or(
-                And(
+            tnfrsf1a_expr = Or([
+                And([
                     variante_tnfrsf1a_patogenica,
                     AoMenos(
                         1,
                         [dor_muscular, coceira_migratoria, edema_periorbital]
                     )
-                ),
-                And(
+                ]),
+                And([
                     vus_de_tnfrsf1a,
                     AoMenos(
                         2,
                         [dor_muscular, coceira_migratoria, edema_periorbital]
                     )
-                )
-            )
+                ])
+            ])
 
-            mvk_expr = And(
+            mvk_expr = And([
                 variante_mvk_patogenica,
                 AoMenos(
                     1,
                     [inflamacao_gastrointestinal, inchaco_cervical, ulcera_na_boca]
                 )
-            )
+            ])
 
 
-            # Criando uma doença e um diagnóstico para a expressão
+            # # Criando uma doença e um diagnóstico para a expressão
             paper_link1 = "https://doi.org/10.1136/annrheumdis-2019-215048"
             caps = Doenca(name="Cryopyrin-Associated Periodic Syndromes")
             diag = Diagnostico(sensibilidade=1, especificidade=1, acuracia=1, doenca=caps, expressao=nlrp3_expr, paper_link=paper_link1)
@@ -221,18 +221,29 @@ class DatabaseConfig:
             sintoma_fake3 = Sintoma(coceira, gastrointestinal)
             present_resultado_fake = Resultado(name="Present Fake Result", exame=exame_fake1)
             vus_resultado_fake = Resultado(name="VUS Fake Result", exame=exame_fake1)
-            fake_1 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])))
-            fake_2 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake3])))
-            fake_3 = Or(And(present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])), And(vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])))
+            fake_1 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])])])
+            fake_2 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake3])])])
+            fake_3 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])])
+            fake_multiple_or_and = Or([
+                And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2]), AoMenos(2, [sintoma_fake1, sintoma_fake2])]),
+                And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2]), present_resultado_fake]),
+                Or([
+                    And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), 
+                    And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])
+                ])
+            ])
             fake1disease = Doenca(name="Fake Disease 1")
             fake1diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake1disease, expressao=fake_1)
             fake2disease = Doenca(name="Fake Disease 2")
             fake2diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake2disease, expressao=fake_2)
             fake3disease = Doenca(name="Fake Disease 3")
             fake3diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake3disease, expressao=fake_3)
+            fake_multiple_or_and_disease = Doenca(name="Fake Multiple Or And Disease")
+            fake_multiple_or_and_diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake_multiple_or_and_disease, expressao=fake_multiple_or_and)
             session.add(fake1disease)
             session.add(fake2disease)
             session.add(fake3disease)
+            session.add(fake_multiple_or_and_disease)
             # End Fake expressions for testing
 
             session.commit()

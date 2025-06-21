@@ -92,16 +92,16 @@ with tabs["Doença"]:
             st.success(f"Doença '{text_input}' cadastrada com sucesso!")
 
 
-with tabs["Or"]:
-    expressions = sq.get_all_expressions()
-    col1, col2 = st.columns(2)
-    with col1:
-        or_left_expr = st.selectbox("Busque expressões já existentes", options=expressions, index=None, placeholder="Digite um pedaço da expressão Or", key="or_left")
-    with col2:
-        or_right_expr = st.selectbox("Busque expressões já existentes", options=expressions, index=None, placeholder="Digite um pedaço da expressão Or", key="or_right")
-    if st.button("Cadastrar", type="primary", key="or"):
-        response = sq.add_or(or_left_expr, or_right_expr)
-        if response == 'Created':
-            st.success(f"Expressão: '{or_left_expr}' OR '{or_right_expr}' cadastrada com sucesso!")
-        else:
-            st.warning(f"Expressão: '{or_left_expr}' OR '{or_right_expr}' já existe!")
+# with tabs["Or"]:
+#     expressions = sq.get_all_expressions()
+#     col1, col2 = st.columns(2)
+#     with col1:
+#         or_left_expr = st.selectbox("Busque expressões já existentes", options=expressions, index=None, placeholder="Digite um pedaço da expressão Or", key="or_left")
+#     with col2:
+#         or_right_expr = st.selectbox("Busque expressões já existentes", options=expressions, index=None, placeholder="Digite um pedaço da expressão Or", key="or_right")
+#     if st.button("Cadastrar", type="primary", key="or"):
+#         response = sq.add_or(or_left_expr, or_right_expr)
+#         if response == 'Created':
+#             st.success(f"Expressão: '{or_left_expr}' OR '{or_right_expr}' cadastrada com sucesso!")
+#         else:
+#             st.warning(f"Expressão: '{or_left_expr}' OR '{or_right_expr}' já existe!")

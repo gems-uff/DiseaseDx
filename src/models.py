@@ -136,13 +136,29 @@ class Base(DeclarativeBase):
 
 
 """
-Table to represent the many-to-many relationship between AoMenos and Expressao.
+Tables to represent the many-to-many relationship between AoMenos, And, Or and Expressao.
 This table is used to store the expressions that are part of the AoMenos expression.
 """
 ao_menos_expressoes = Table(
     "ao_menos_expressoes",
     Base.metadata,
     Column("ao_menos_id", Integer, ForeignKey("ao_menos.id"), primary_key=True),
+    Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+)
+
+
+or_expressoes = Table(
+    "or_expressoes",
+    Base.metadata,
+    Column("or_id", Integer, ForeignKey("or.id"), primary_key=True),
+    Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
+)
+
+
+and_expressoes = Table(
+    "and_expressoes",
+    Base.metadata,
+    Column("and_id", Integer, ForeignKey("and.id"), primary_key=True),
     Column("expressao_id", Integer, ForeignKey("expressao.id"), primary_key=True)
 )
 
@@ -163,6 +179,8 @@ class Expressao(Base):
     type: Mapped[str] = mapped_column(String(255))
 
     ao_menos_expr: Mapped[list["AoMenos"]] = relationship("AoMenos", secondary=ao_menos_expressoes, back_populates="expressoes")
+    or_expr: Mapped[list["Or"]] = relationship("Or", secondary=or_expressoes, back_populates="expressoes")
+    and_expr: Mapped[list["And"]] = relationship("And", secondary=and_expressoes, back_populates="expressoes")
 
     __mapper_args__ = {
         "polymorphic_identity": "expressao",
@@ -212,11 +230,8 @@ class And(Expressao):
     """
     __tablename__ = "and"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-
-    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
-    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
+    
+    expressoes: Mapped[list["Expressao"]] = relationship("Expressao", secondary=and_expressoes, back_populates="and_expr")
 
     __mapper_args__ = {
         "polymorphic_identity": "and",
@@ -224,12 +239,11 @@ class And(Expressao):
     }
 
     
-    def __init__(self, left: Expressao, right: Expressao) -> None:
+    def __init__(self, expressoes: list[Expressao]) -> None:
         """
-        Constructor for the AND expression. It takes two expressions as arguments. Left and right, both of type Expressao.
+        Constructor for the AND expression. It takes a list of expressions as arguments.
         """
-        self.left_expr = left
-        self.right_expr = right
+        self.expressoes = expressoes
 
 
     def avalia(self, fatos: FatosSintomaResultado) -> tuple[Tribool, AvaliaNode]:
@@ -240,33 +254,45 @@ class And(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
-        
-        left_result, left_tree = self.left_expr.avalia(fatos) 
-        right_result, right_tree = self.right_expr.avalia(fatos)
+        results = []
+        scores = []
 
-        result = Tribool(left_result) & Tribool(right_result)
-        avalia_node.result = result
+        for expr in self.expressoes:
+            expr_result, expr_avalia_node = expr.avalia(fatos)
+            avalia_node.children.append(expr_avalia_node)
+            scores.append(expr_avalia_node.score)
+            results.append(expr_result)
 
-        score = (left_tree.score + right_tree.score) / 2
-        avalia_node.score = score
+        if any(result is Tribool(False) for result in results):
+            avalia_node.result = Tribool(False)
+            avalia_node.score = -1
+        elif all(result is Tribool(True) for result in results):
+            avalia_node.result = Tribool(True)
+            avalia_node.score = 1
+        else:
+            avalia_node.result = Tribool(None)
+            avalia_node.score = sum(scores) / len(scores)
 
-        avalia_node.children.append(left_tree)
-        avalia_node.children.append(right_tree)
-        return result, avalia_node
+        return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:
         """
         Check if the AND expression contains the given fact (sintoma or resultado).
         """
-        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
+        for expr in self.expressoes:
+            if expr.contem(fato):
+                return True
+        return False
+
     
 
     def __repr__(self) -> str:
         """
         Return a string representation of the AND expression.
         """
-        return f"{self.__class__.__name__}({self.left_expr}, {self.right_expr})"
+        ands = " & ".join([expr for expr in self.expressoes])
+        return f"{self.__class__.__name__}({ands})"
 
 
 
@@ -284,11 +310,8 @@ class Or(Expressao):
     """
     __tablename__ = "or"
     id: Mapped[int] = mapped_column(ForeignKey("expressao.id"), primary_key=True)
-    left_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-    right_expr_id: Mapped[int] = mapped_column(ForeignKey("expressao.id"))
-
-    left_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[left_expr_id])
-    right_expr: Mapped[Expressao] = relationship("Expressao", foreign_keys=[right_expr_id])
+    
+    expressoes: Mapped[list["Expressao"]] = relationship("Expressao", secondary=or_expressoes, back_populates="or_expr")
 
     __mapper_args__ = {
         "polymorphic_identity": "or",
@@ -296,12 +319,11 @@ class Or(Expressao):
     }
 
     
-    def __init__(self, left: Expressao, right: Expressao) -> None:
+    def __init__(self, expressoes: list[Expressao]) -> None:
         """
-        Constructor for the OR expression. It takes two expressions as arguments. Left and right, both of type Expressao.
+        Constructor for the OR expression. It takes a list of expressions as arguments.
         """
-        self.left_expr = left
-        self.right_expr = right
+        self.expressoes = expressoes
 
 
     def avalia(self, fatos: FatosSintomaResultado) -> tuple[Tribool, AvaliaNode]:
@@ -312,32 +334,43 @@ class Or(Expressao):
         avalia_node = AvaliaNode()
         avalia_node.instance = self
         avalia_node.expressao = self.__class__.__name__
+        results = []
+        scores = []
 
-        left_result, left_tree = self.left_expr.avalia(fatos)
-        right_result, right_tree = self.right_expr.avalia(fatos)
+        for expr in self.expressoes:
+            expr_result, expr_avalia_node = expr.avalia(fatos)
+            avalia_node.children.append(expr_avalia_node)
+            scores.append(expr_avalia_node.score)
+            results.append(expr_result)
 
-        result = Tribool(left_result) | Tribool(right_result)
-        avalia_node.result = result
+        if any(result is Tribool(True) for result in results):
+            avalia_node.result = Tribool(True)
+            avalia_node.score = 1
+        elif all(result is Tribool(False) for result in results):
+            avalia_node.result = Tribool(False)
+            avalia_node.score = -1
+        else:
+            avalia_node.result = Tribool(None)
+            avalia_node.score = max(scores)
 
-        score = max(left_tree.score, right_tree.score)
-        avalia_node.score = score
-        
-        avalia_node.children.append(left_tree)
-        avalia_node.children.append(right_tree)
-        return result, avalia_node
+        return avalia_node.result, avalia_node
     
     
     def contem(self, fato) -> bool:
         """
         Check if the OR expression contains the given fact (sintoma or resultado).
         """
-        return self.left_expr.contem(fato) or self.right_expr.contem(fato)
+        for expr in self.expressoes:
+            if expr.contem(fato):
+                return True
+        return False
 
     def __repr__(self) -> str:
         """
         Return a string representation of the OR expression.
         """
-        return f"{self.__class__.__name__}({self.left_expr}, {self.right_expr})"
+        ors = " | ".join([expr for expr in self.expressoes])
+        return f"{self.__class__.__name__}({ors})"
 
 
 

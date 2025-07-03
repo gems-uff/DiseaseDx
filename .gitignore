@@ -166,3 +166,5 @@ mylocaldb.db
 *.sql
 
 duvidas.md
+
+*.vpp.*

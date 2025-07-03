@@ -64,7 +64,8 @@ class DatabaseConfig:
             # Criando os objetos de Manifestacao
             dor = Manifestacao(name="Dor")
             artrite = Manifestacao(name="Artrite")
-            coceira = Manifestacao(name="Coceira") # rash
+            coceira = Manifestacao(name="Coceira")
+            erupcao = Manifestacao(name="Erupcao")
             feb = Manifestacao(name="Febre")
             vermelhidao = Manifestacao(name="Vermelhidão")
             perda = Manifestacao(name="Perda")
@@ -73,6 +74,7 @@ class DatabaseConfig:
             inchaco = Manifestacao(name="Inchaço")
             ulcera = Manifestacao(name="Úlcera")
             coceira_mig = Manifestacao(name="Coceira Migratória")
+            erupcao_mig = Manifestacao(name="Erupção Migratória")
 
             # Criando os objetos de Orgao
             ombro = Orgao(name="Ombro")
@@ -105,12 +107,13 @@ class DatabaseConfig:
             coceira_no_olho = Sintoma(coceira, olho)
             coceira_na_mao = Sintoma(coceira, mao)
             coceira_na_pele = Sintoma(coceira, pele)
+            erupcao_na_pele = Sintoma(erupcao, pele)
             vermelhidao_no_olho = Sintoma(vermelhidao, olho)
             perda_de_audição = Sintoma(perda, audicao)
             artrite_no_corpo = Sintoma(artrite, corpo)
             dor_no_peito = Sintoma(dor, torax)
             dor_muscular = Sintoma(dor, musculo)
-            coceira_migratoria = Sintoma(coceira_mig)
+            erupcao_na_pele_migratoria = Sintoma(erupcao_mig, pele)
             edema_periorbital = Sintoma(edema, periorbital)
             inflamacao_gastrointestinal = Sintoma(inflamacao, gastrointestinal)
             inchaco_cervical = Sintoma(inchaco, cervical)
@@ -139,14 +142,14 @@ class DatabaseConfig:
                     variante_nlrp3_patogenica,
                     AoMenos(
                         1,
-                        [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
+                        [erupcao_na_pele, vermelhidao_no_olho, perda_de_audição]
                     )
             ]),
                 And([
                     vus_de_nlrp3,
                     AoMenos(
                         2,
-                        [coceira_na_pele, vermelhidao_no_olho, perda_de_audição]
+                        [erupcao_na_pele, vermelhidao_no_olho, perda_de_audição]
                     )
             ])
             ])
@@ -173,14 +176,14 @@ class DatabaseConfig:
                     variante_tnfrsf1a_patogenica,
                     AoMenos(
                         1,
-                        [dor_muscular, coceira_migratoria, edema_periorbital]
+                        [dor_muscular, erupcao_na_pele_migratoria, edema_periorbital]
                     )
                 ]),
                 And([
                     vus_de_tnfrsf1a,
                     AoMenos(
                         2,
-                        [dor_muscular, coceira_migratoria, edema_periorbital]
+                        [dor_muscular, erupcao_na_pele_migratoria, edema_periorbital]
                     )
                 ])
             ])
@@ -216,9 +219,9 @@ class DatabaseConfig:
 
             # Fake expressions for testing
             exame_fake1 = Exame(name="Fake Exame 1", preco="R$1000,00")
-            sintoma_fake1 = Sintoma(ulcera, audicao)
-            sintoma_fake2 = Sintoma(feb, olho)
-            sintoma_fake3 = Sintoma(coceira, gastrointestinal)
+            sintoma_fake1 = Sintoma(Manifestacao(name="Fake Common Symptom 1"))
+            sintoma_fake2 = Sintoma(Manifestacao(name="Fake Common Symptom 2"))
+            sintoma_fake3 = Sintoma(Manifestacao(name="Fake Common Symptom 3"))
             present_resultado_fake = Resultado(name="Present Fake Result", exame=exame_fake1)
             vus_resultado_fake = Resultado(name="VUS Fake Result", exame=exame_fake1)
             fake_1 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])])])

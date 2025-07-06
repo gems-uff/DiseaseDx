@@ -86,8 +86,9 @@ class DatabaseConfig:
             boca = Orgao(name="Boca")
 
             # Criando os objetos de RegiaoComposta
+            peito = RegiaoComposta(name="Peito", regioes=[pulmao])
             abdome = RegiaoComposta(name="Abdome", regioes=[estomago])
-            torax = RegiaoComposta(name="Tórax", regioes=[pulmao])
+            torax = RegiaoComposta(name="Tórax", regioes=[peito])
             tronco = RegiaoComposta(name="Tronco", regioes=[abdome, torax])
             mao = RegiaoComposta(name="Mão")
             pele = RegiaoComposta(name="Pele")
@@ -111,7 +112,7 @@ class DatabaseConfig:
             vermelhidao_no_olho = Sintoma(vermelhidao, olho)
             perda_de_audição = Sintoma(perda, audicao)
             artrite_no_corpo = Sintoma(artrite, corpo)
-            dor_no_peito = Sintoma(dor, torax)
+            dor_no_peito = Sintoma(dor, peito)
             dor_muscular = Sintoma(dor, musculo)
             erupcao_na_pele_migratoria = Sintoma(erupcao_mig, pele)
             edema_periorbital = Sintoma(edema, periorbital)
@@ -217,37 +218,37 @@ class DatabaseConfig:
             session.add(traps)
             session.add(mkd)
 
-            # Fake expressions for testing
-            exame_fake1 = Exame(name="Fake Exame 1", preco="R$1000,00")
-            sintoma_fake1 = Sintoma(Manifestacao(name="Fake Common Symptom 1"))
-            sintoma_fake2 = Sintoma(Manifestacao(name="Fake Common Symptom 2"))
-            sintoma_fake3 = Sintoma(Manifestacao(name="Fake Common Symptom 3"))
-            present_resultado_fake = Resultado(name="Present Fake Result", exame=exame_fake1)
-            vus_resultado_fake = Resultado(name="VUS Fake Result", exame=exame_fake1)
-            fake_1 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])])])
-            fake_2 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake3])])])
-            fake_3 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])])
-            fake_multiple_or_and = Or([
-                And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2]), AoMenos(2, [sintoma_fake1, sintoma_fake2])]),
-                And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2]), present_resultado_fake]),
-                Or([
-                    And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), 
-                    And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])
-                ])
-            ])
-            fake1disease = Doenca(name="Fake Disease 1")
-            fake1diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake1disease, expressao=fake_1)
-            fake2disease = Doenca(name="Fake Disease 2")
-            fake2diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake2disease, expressao=fake_2)
-            fake3disease = Doenca(name="Fake Disease 3")
-            fake3diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake3disease, expressao=fake_3)
-            fake_multiple_or_and_disease = Doenca(name="Fake Multiple Or And Disease")
-            fake_multiple_or_and_diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake_multiple_or_and_disease, expressao=fake_multiple_or_and)
-            session.add(fake1disease)
-            session.add(fake2disease)
-            session.add(fake3disease)
-            session.add(fake_multiple_or_and_disease)
-            # End Fake expressions for testing
+            # # Fake expressions for testing
+            # exame_fake1 = Exame(name="Fake Exame 1", preco="R$1000,00")
+            # sintoma_fake1 = Sintoma(Manifestacao(name="Fake Common Symptom 1"))
+            # sintoma_fake2 = Sintoma(Manifestacao(name="Fake Common Symptom 2"))
+            # sintoma_fake3 = Sintoma(Manifestacao(name="Fake Common Symptom 3"))
+            # present_resultado_fake = Resultado(name="Present Fake Result", exame=exame_fake1)
+            # vus_resultado_fake = Resultado(name="VUS Fake Result", exame=exame_fake1)
+            # fake_1 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2, sintoma_fake3])])])
+            # fake_2 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake3])])])
+            # fake_3 = Or([And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])])
+            # fake_multiple_or_and = Or([
+            #     And([present_resultado_fake, AoMenos(1, [sintoma_fake1, sintoma_fake2]), AoMenos(2, [sintoma_fake1, sintoma_fake2])]),
+            #     And([vus_resultado_fake, AoMenos(2, [sintoma_fake1, sintoma_fake2]), present_resultado_fake]),
+            #     Or([
+            #         And([present_resultado_fake, AoMenos(1, [sintoma_fake2, sintoma_fake3])]), 
+            #         And([vus_resultado_fake, AoMenos(2, [sintoma_fake2, sintoma_fake3])])
+            #     ])
+            # ])
+            # fake1disease = Doenca(name="Fake Disease 1")
+            # fake1diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake1disease, expressao=fake_1)
+            # fake2disease = Doenca(name="Fake Disease 2")
+            # fake2diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake2disease, expressao=fake_2)
+            # fake3disease = Doenca(name="Fake Disease 3")
+            # fake3diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake3disease, expressao=fake_3)
+            # fake_multiple_or_and_disease = Doenca(name="Fake Multiple Or And Disease")
+            # fake_multiple_or_and_diag = Diagnostico(sensibilidade=0.99, especificidade=0.99, acuracia=0.99, doenca=fake_multiple_or_and_disease, expressao=fake_multiple_or_and)
+            # session.add(fake1disease)
+            # session.add(fake2disease)
+            # session.add(fake3disease)
+            # session.add(fake_multiple_or_and_disease)
+            # # End Fake expressions for testing
 
             session.commit()
 

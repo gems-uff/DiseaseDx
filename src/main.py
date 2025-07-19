@@ -14,13 +14,13 @@ pg = st.navigation(
 		"Home": [
             diagrams,
         ],
-        "Auxiliary Functions": [
-            listar_doencas_do_sintoma, 
-			contador_de_sintomas, 
-			filtrar_doenca_por_sintomas,
-		],
+        # "Auxiliary Functions": [
+		# 	listar_doencas_do_sintoma, 
+		# 	contador_de_sintomas, 
+		# 	filtrar_doenca_por_sintomas,
+		# ],
 		"Main System": [
-            cadastrar_objetos,
+            # cadastrar_objetos,
 			auxiliar_no_diagnostico,
         ]
 	}

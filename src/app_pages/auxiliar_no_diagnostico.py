@@ -1,6 +1,7 @@
 import streamlit as st
 from utils import StreamlitQueries
 from models import Sintoma
+import streamlit.components.v1 as components
 
 
 st.set_page_config(layout="wide", page_icon="🩺")
@@ -26,36 +27,84 @@ col1, col2 = st.columns(2)
 
 with col1:
 
-	present_sintomas = st.multiselect(
-		"Selecione os sintomas presentes", 
-		sintomas,
-		format_func=lambda sintoma: format_func(sintoma),
-		placeholder="Selecione os sintomas presentes"
-	)
-
-	present_resultados = st.multiselect(
-		"Selecione os resultados presentes", 
-		resultados,
-		format_func=lambda resultado: format_func(resultado),
-		placeholder="Selecione os resultados presentes"
-	)
+	with st.container():
+		present_sintomas = st.multiselect(
+			"Selecione os sintomas presentes", 
+			sintomas,
+			format_func=lambda sintoma: format_func(sintoma),
+			placeholder="Selecione os sintomas presentes"
+		)
+		components.html("""
+			<script>
+			const parent = window.parent.document.querySelectorAll('[data-testid="stMultiSelect"]')[0];
+			parent.classList.add('verde');
+			</script>
+		""", height=0)
+	
+	with st.container():
+		present_resultados = st.multiselect(
+			"Selecione os resultados presentes", 
+			resultados,
+			format_func=lambda resultado: format_func(resultado),
+			placeholder="Selecione os resultados presentes"
+		)
+		components.html("""
+			<script>
+			const parent = window.parent.document.querySelectorAll('[data-testid="stMultiSelect"]')[1];
+			parent.classList.add('verde');
+			</script>
+		""", height=0)
 
      
 with col2:
 
-	not_present_sintomas = st.multiselect(
-		"Selecione os sintomas ausentes", 
-		sintomas,
-		format_func=lambda sintoma: format_func(sintoma),
-		placeholder="Selecione os sintomas ausentes"
-	)
+	with st.container():
+		not_present_sintomas = st.multiselect(
+			"Selecione os sintomas ausentes", 
+			sintomas,
+			format_func=lambda sintoma: format_func(sintoma),
+			placeholder="Selecione os sintomas ausentes"
+		)
+		components.html("""
+			<script>
+			const parent = window.parent.document.querySelectorAll('[data-testid="stMultiSelect"]')[2];
+			parent.classList.add('vermelho');
+			</script>
+		""", height=0)
 
-	not_present_resultados = st.multiselect(
-		"Selecione os resultados ausentes", 
-		resultados,
-		format_func=lambda resultado: format_func(resultado),
-		placeholder="Selecione os resultados ausentes"
-	)
+	with st.container():
+		not_present_resultados = st.multiselect(
+			"Selecione os resultados ausentes", 
+			resultados,
+			format_func=lambda resultado: format_func(resultado),
+			placeholder="Selecione os resultados ausentes"
+		)
+		components.html("""
+			<script>
+			const parent = window.parent.document.querySelectorAll('[data-testid="stMultiSelect"]')[3];
+			parent.classList.add('vermelho');
+			</script>
+		""", height=0)
+
+st.markdown("""
+    <style>
+    .verde [data-baseweb="tag"] {
+        background-color: green !important;
+        color: white !important;
+    }
+    .verde [data-baseweb="tag"] svg {
+        color: white !important;
+    }
+
+    .vermelho [data-baseweb="tag"] {
+        background-color: red !important;
+        color: white !important;
+    }
+    .vermelho [data-baseweb="tag"] svg {
+        color: white !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 
 diagnosticos_avaliacoes = sq.get_diagnosticos_avaliacoes_by_list_of_sintomas_and_resultados(present_sintomas, not_present_sintomas, present_resultados, not_present_resultados)

@@ -117,10 +117,10 @@ To debug the project in VS Code, you can use the following `launch.json` configu
 ## Diagrams
 
 ### Class Diagram
-![class_diagram](./diagrams/tcc_class_diagram.png)
+![class_diagram](./src/images/tcc_class_diagram.png)
 
 ### Object Diagram
-![object_diagram](./diagrams/tcc_object_diagram.png)
+![object_diagram](./src/images/tcc_object_diagram.png)
 
 ---
 

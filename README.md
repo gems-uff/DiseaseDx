@@ -6,7 +6,7 @@
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange?style=flat-square&logo=mysql)
 ![SQLite](https://img.shields.io/badge/SQLite-3.0-lightblue?style=flat-square&logo=sqlite)
 
-DiseaseDx is a disease diagnosis system developed as part of my final project in Computer Science.
+DiseaseDx is a disease diagnosis system developed as part of my [final project](./documents/TCC_Versao_Final.pdf) in Computer Science.
 
 ---
 
